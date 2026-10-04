@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+@theme {
+  --color-night: #0b1f33;
+  --color-dusk: #15314f;
+  --color-paper: #f6f7f1;
+}
+
+html,
+body {
+  height: 100%;
+}

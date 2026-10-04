@@ -1,0 +1,24 @@
+[project]
+name = "ireland-after-dark"
+version = "0.1.0"
+description = "After-dark walking route tool for Ireland (Build for Ireland prototype)"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.142.2",
+    "openai>=3.24.0",
+    "pydantic-settings>=2.15.0",
+    "pymongo>=4.18.2",
+    "python-dotenv>=1.2.4",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[tool.uv]
+package = false
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

@@ -1,8 +1,8 @@
-# Dublin After Dark
+# Ireland After Dark
 
-A Build for Ireland prototype exploring walking-route choices after dark in Dublin.
+A Build for Ireland prototype exploring walking-route choices after dark. Routing works anywhere in Ireland via OpenStreetMap; lighting/footfall/SCATS coverage is Dublin-only today, so routes outside Dublin get an honest Low data-confidence badge.
 
-**Status: team starter repository. The application is not built yet.**
+**Status: hello-world skeleton is running (FastAPI + MongoDB + map frontend). Routing, scoring and real data are not built yet.**
 
 ## Proposed first demo
 
@@ -14,23 +14,57 @@ Start with one small area. CHQ to Connolly Station is a proposed corridor, subje
 
 ## Start collaborating
 
+Agree roles and scope using [the brief](docs/PROJECT_BRIEF.md) and [the task split](docs/TASKS.md). Read [the verified data notes](docs/DATA_SOURCES.md) before coding. Use separate branches and review before merging into main.
+
+### Run it with one command
+
 ```sh
-git clone https://github.com/Rajeev-Shyam/dublin-after-dark.git
-cd dublin-after-dark
-git switch -c codex/your-task
+cp .env.example .env   # fill in OPENAI_API_KEY and MONGODB_URI (local or Atlas)
+docker compose up -d --build
 ```
 
-Agree roles and scope using [the brief](docs/PROJECT_BRIEF.md). Read [the verified data notes](docs/DATA_SOURCES.md) before coding. Use separate branches and review before merging into main.
+This builds and starts both containers:
 
-Python backend and a simple browser interface are proposed. Framework/dependencies are unselected; create your own local environment. No application run command or working route engine exists yet.
+- backend — `http://localhost:8000` (`/health`, `/docs`)
+- frontend — `http://localhost:3000`
+
+`MONGODB_URI` in `.env` can point at a local Mongo (if you add one back to
+`docker-compose.yml`) or an Atlas `mongodb+srv://` connection string — the
+backend container just reads whatever is set there. Logs: `docker compose logs -f`.
+Stop everything: `docker compose down`.
+
+### Run it manually (faster iteration, hot reload)
+
+Backend:
+
+```sh
+uv sync
+uv run uvicorn backend.api.main:app --reload --port 8000
+```
+
+Frontend:
+
+```sh
+cd frontend
+cp .env.example .env.local
+npm install
+npm run dev
+```
+
+Tests: `uv run pytest`
 
 ## Structure
 
-- `src/`: application code.
-- `tests/`: application checks.
+- `backend/api/`: FastAPI app and `POST /route` endpoint.
+- `backend/routing/`: OSM graph build, caching, Fastest/Night route pathfinding.
+- `backend/scoring/`: Route Score, Data Confidence, explanation generation.
+- `backend/db/`: shared MongoDB client.
+- `frontend/`: Next.js map UI (App Router, MapLibre, Tailwind).
 - `data/raw/` and `data/processed/`: local data; payloads ignored pending review.
-- `docs/`: team brief and source evidence.
-- `.env.example`: empty placeholders only.
+- `data/pipeline/`: dataset download/clean scripts.
+- `docs/`: team brief, task split, API contract and source evidence.
+- `tests/`: backend checks (pytest).
+- `.env.example` / `frontend/.env.example`: placeholders only — copy to `.env` / `.env.local`.
 
 ## Boundaries
 
