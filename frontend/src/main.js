@@ -79,12 +79,22 @@ function routeCard(route) {
 
 function render(data) {
   routeLayer.clearLayers();
-  for (const route of data.routes) {
+  // Paint every casing first so an overlapping route cannot hide another's colour.
+  const routes = [...data.routes].sort((a, b) => Number(a.kind === 'night') - Number(b.kind === 'night'));
+  const paths = routes.map(route => route.geometry.coordinates.map(toLeaflet));
+  for (const [color, weight] of [['#ffffff', 15], ['#172229', 11]]) {
+    for (const path of paths) {
+      polyline(path, { color, weight, opacity: 1, interactive: false }).addTo(routeLayer);
+    }
+  }
+  for (const [index, route] of routes.entries()) {
     const night = route.kind === 'night';
-    polyline(route.geometry.coordinates.map(toLeaflet), {
-      color: night ? '#f5be53' : '#7ea2ff',
-      weight: night ? 5 : 7,
-      dashArray: night ? '2 10' : undefined,
+    polyline(paths[index], {
+      className: night ? 'route-line-night' : 'route-line-fastest',
+      weight: night ? 6 : 8,
+      opacity: 1,
+      dashArray: night ? '12 12' : undefined,
+      interactive: false,
     }).addTo(routeLayer);
   }
   if (routeLayer.getLayers().length) map.fitBounds(routeLayer.getBounds(), { padding: [60, 60] });
