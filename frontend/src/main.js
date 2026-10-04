@@ -124,9 +124,10 @@ function render(data) {
     : {paddingTopLeft:[20,window.innerHeight*.72],paddingBottomRight:[20,35]};
   if (routeLayer.getLayers().length) map.fitBounds(routeLayer.getBounds(), padding());
 
-  byId('sheet-intro').textContent = `${data.routes.length} walking option${data.routes.length === 1 ? '' : 's'} found, within the five-minute detour limit. ${data.routes.length < 3 ? 'Fewer than three distinct candidates were found. ' : ''}Recorded lighting and historical activity are not a safety guarantee. ${data.hospital_context?.attribution ? `${data.hospital_context.attribution}; hospitals fetched ${data.hospital_context.fetched_at_utc.slice(0,10)}.` : ''}`;
   const recommended = recommendedKind(data.routes);
-  byId('sheet-body').innerHTML = data.routes.map(route => routeCard(route, route.kind === recommended)).join('');
+  byId('sheet-intro').textContent = `${data.routes.length} route${data.routes.length === 1 ? '' : 's'} found. Not a safety guarantee.`;
+  const displayRoutes = [...data.routes].sort((a, b) => Number(b.kind === recommended) - Number(a.kind === recommended));
+  byId('sheet-body').innerHTML = displayRoutes.map(route => routeCard(route, route.kind === recommended)).join('');
   for (const button of byId('sheet-body').querySelectorAll('.view-route')) {
     button.addEventListener('click', () => {
       const route = data.routes.find(r=>r.kind===button.dataset.route);
@@ -144,7 +145,7 @@ function render(data) {
     });
   }
   byId('sheet').hidden = false;
-  byId('sheet-body').querySelector('.view-route')?.click();
+  byId('sheet-body').querySelector(`[data-route="${recommended || 'fastest'}"]`)?.click();
   status('');
 }
 
