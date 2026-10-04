@@ -1,10 +1,12 @@
-"""Maps the routing engine's result shape onto the frontend's contract.
+"""Maps the routing engine's result shape onto frontend/API_CONTRACT_PROPOSED.md.
 
-Keeps Person 1's engine unchanged; all the translation lives here.
+Keeps both Person 1's engine and the frontend's adapter unchanged; all the
+translation lives here.
 """
 
 from . import route_score
 from .explanation import build_explanations, build_limitations
+from backend.routing.diversity import same_corridor
 
 # Dated to the actual resource content, not the download date.
 # Dublin City Council via Smart Dublin, CC BY 4.0.
@@ -22,7 +24,7 @@ SOURCES = [
 ]
 
 
-def _route_payload(kind: str, route: dict, status: str, detour: dict | None, time_slice: dict | None, fastest: dict) -> dict:
+def _route_payload(kind: str, route: dict, status: str, detour: dict, time_slice: dict | None, siblings: dict) -> dict:
     has_scores = status != "baseline_only"
     lighting = route["lighting"]
     activity = route["activity"]
@@ -57,41 +59,62 @@ def _route_payload(kind: str, route: dict, status: str, detour: dict | None, tim
         "geometry": route["geometry"],
         "distance_m": route["distance_m"],
         "duration_s": round(route["duration_min"] * 60),
-        "lighting_coverage_pct": None if lighting["score"] is None else round(lighting["score"] * 100, 1),
+        "lighting_coverage_pct": None if lighting["score"] is None else round(lighting["coverage"] * 100, 1),
+        "activity_coverage_pct": None if activity["score"] is None else round(activity["coverage"] * 100, 1),
         "historical_activity": historical_activity,
         "waiting": None,
         "score": score,
         "score_breakdown": breakdown,
         "confidence": confidence,
         "limitations": build_limitations(route, has_scores, time_slice),
-        "explanations": build_explanations(kind, status, fastest, route, detour),
+        "explanations": build_explanations(kind, status, siblings["fastest"], siblings["night"], detour),
         "sources": SOURCES if has_scores else [],
     }
 
 
-def build_route_response(
-    area: str,
-    bbox: tuple[float, float, float, float] | None,
-    fastest: dict,
-    time_slice: dict | None,
-    alternatives: list[dict],
-) -> dict:
-    """alternatives: one dict per preference profile, each
-    {"kind": str, "route": dict, "status": str, "detour": dict} - all
-    produced against the same `fastest` baseline from backend.routing.
-    """
-    first_status = alternatives[0]["status"] if alternatives else "baseline_only"
+def build_route_response(area: str, bbox: tuple[float, float, float, float] | None,
+                         engine_result: dict, time_slice=None, alternatives=None) -> dict:
+    """engine_result is backend.routing.get_route()'s return value, plus the
+    area's bbox (left, bottom, right, top) from the GraphStore."""
+    if alternatives is not None:
+        # Also accept the team's named-profile contract directly.
+        engine_result = {'fastest': engine_result, 'night': engine_result,
+                         'status': alternatives[0]['status'] if alternatives else 'baseline_only',
+                         'detour': None, 'time_slice': time_slice, 'named_alternatives': alternatives}
+    fastest = engine_result["fastest"]
+    night = engine_result["night"]
+    status = engine_result["status"]
+    detour = engine_result["detour"]
+    time_slice = engine_result.get("time_slice")
+    siblings = {"fastest": fastest, "night": night}
 
-    routes = [_route_payload("fastest", fastest, first_status, None, time_slice, fastest)]
-    for alt in alternatives:
-        routes.append(_route_payload(alt["kind"], alt["route"], alt["status"], alt["detour"], time_slice, fastest))
+    routes = [_route_payload("fastest", fastest, status, detour, time_slice, siblings)]
+    seen = [fastest]
+    candidates = engine_result.get('named_alternatives', [
+        {'kind': 'night', 'route': night, 'status': status, 'detour': detour}])
+    candidates = [*candidates, *[{'kind': f'alternative{i+1}', 'route': r,
+                                 'status': status, 'detour': detour}
+                                for i,r in enumerate(engine_result.get('alternatives', []))]]
+    for candidate_info in candidates:
+        kind, candidate = candidate_info['kind'], candidate_info['route']
+        if len(routes)>=3 or any(same_corridor(candidate, previous) for previous in seen):
+            continue
+        seen.append(candidate)
+        item=_route_payload(kind,candidate,candidate_info['status'],candidate_info['detour'],
+                            time_slice,{'fastest': fastest, 'night': candidate})
+        if kind.startswith('alternative'):
+            extra=max(0,candidate['duration_min']-fastest['duration_min'])
+            item['explanations']=[f'Distinct walking alternative, about {extra:.1f} minutes longer than the fastest route.']
+        routes.append(item)
 
     description = f"Supported walking network: {area}."
-    if first_status == "baseline_only":
+    if status == "baseline_only":
         description += " No lighting or footfall evidence is available here."
 
     return {
         "mode": "walking",
+        "comparison_status": status,
+        "route_options_note": "Up to three distinct candidates within five extra walking minutes. Routes sharing at least 85% of each other's 15 m corridor count as one option. This is a bounded search, not an exhaustive ranking.",
         "coverage": {
             "bounds": list(bbox) if bbox else None,
             "description": description,

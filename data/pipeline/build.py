@@ -149,13 +149,11 @@ def load_scores(bundle_path: str | Path, edges_path: str | Path, *, weekday: int
         if identity in result:
             raise ValueError("Duplicate edge identity in score bundle")
         length = row.get("length_m")
-        # rel_tol=1e-6: pyproj/PROJ's EPSG:2157 transform isn't bit-identical
-        # across platforms (measured ~1.5e-9 relative noise between a macOS
-        # host build and a Linux container build of the same graph). This
-        # stays ~1000x looser than that observed noise while still catching
-        # a genuinely wrong or mismatched geometry.
         if (type(length) not in (int, float) or not math.isfinite(length) or length <= 0
-                or identity not in expected or not math.isclose(length, expected[identity], rel_tol=1e-6)):
+                # Preserve the team's cross-platform relative tolerance, plus
+                # 10 nm absolute tolerance for tiny Windows/Linux edges. Graph
+                # fingerprints and other evidence checks remain mandatory.
+                or identity not in expected or not math.isclose(length, expected[identity], rel_tol=1e-6, abs_tol=1e-8)):
             raise ValueError("Edge length does not match graph geometry")
         for score in ("lighting_score", "footfall_score"):
             if score not in row:

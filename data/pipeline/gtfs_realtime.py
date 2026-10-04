@@ -1,15 +1,18 @@
 """NTA authenticated GTFS-RT snapshots. No prediction or routing inference."""
 import argparse
-import fcntl
+from contextlib import contextmanager
 import hashlib
 import http.client
 import json
 import math
 import os
+import ssl
 from pathlib import Path
 import time
 import urllib.error
 import urllib.request
+
+import certifi
 
 from google.protobuf.json_format import MessageToDict
 from google.protobuf.message import DecodeError
@@ -23,6 +26,31 @@ ENDPOINTS = {
     'vehicles': 'https://api.nationaltransport.ie/gtfsr/v2/Vehicles',
 }
 MAX_BYTES = 20 * 1024 * 1024
+
+
+@contextmanager
+def _request_lock(path):
+    """OS-backed lock shared by processes; failure never permits a request.
+
+    Windows locks byte zero (even for an empty file); POSIX locks the file.
+    Keep this inode/path stable: deleting the lock file would break exclusion.
+    """
+    with Path(path).open('a+b') as lock:
+        if os.name == 'nt':
+            import msvcrt
+            lock.seek(0)
+            msvcrt.locking(lock.fileno(), msvcrt.LK_LOCK, 1)
+        else:
+            import fcntl
+            fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            if os.name == 'nt':
+                lock.seek(0)
+                msvcrt.locking(lock.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
 
 
 def freshness(timestamp, now, max_age_seconds=90):
@@ -148,19 +176,23 @@ def fetch_snapshot(output, *, endpoint='trip_updates', api_key=None, timeout=30,
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
     # Lock covers gate read/write only, then records failed requests too.
-    with (output / '.request.lock').open('a+') as lock:
-        fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+    with _request_lock(output / '.request.lock'):
         gate = output / '.last-request.json'
         now = time.time()
         if gate.exists():
             previous = json.loads(gate.read_text())['requested_at_unix']
+            if not isinstance(previous, (int, float)) or not math.isfinite(previous):
+                raise ValueError('Invalid NTA request gate; refusing request')
             if now - previous < 60:
                 raise ValueError('NTA fair usage: wait at least 60 seconds between requests across endpoints')
         atomic_write(gate, json.dumps({'requested_at_unix': now}).encode())
     request = urllib.request.Request(ENDPOINTS[endpoint], headers={
         'x-api-key': key, 'Accept': 'application/x-protobuf',
         'User-Agent': 'DublinAfterDark-data/0.1', 'Accept-Encoding': 'identity'})
-    opener = urllib.request.build_opener(_NoRedirect())
+    # Explicit Mozilla roots also work on Windows hosts with incomplete OS roots.
+    # Certificate and hostname verification remain enabled.
+    opener = urllib.request.build_opener(
+        _NoRedirect(), urllib.request.HTTPSHandler(context=ssl.create_default_context(cafile=certifi.where())))
     try:
         with opener.open(request, timeout=timeout) as response:
             if response.geturl() != ENDPOINTS[endpoint]:

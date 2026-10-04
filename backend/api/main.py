@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from dataclasses import replace
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -7,24 +8,22 @@ from fastapi.responses import JSONResponse
 from pymongo.errors import PyMongoError
 
 from backend.db import get_client
-from backend.routing import Preferences, RoutingError, get_store
+from backend.routing import RoutingError, get_store
 from backend.scoring import build_route_response
+from backend.routing.engine import Preferences
+from data.pipeline.time_scores import departure_slot
 
 from .errors import map_routing_error
 from .schemas import RouteRequest
+from .geocoding import PlaceQuery, search
+from .transport import stops, realtime_status
+from .hospitals import attach_hospitals
+from backend.routing.alternatives import add_alternatives
 
-# Each profile is a real (preference, max_extra_minutes) pair the routing
-# engine computes, not a cosmetic label. "Fastest" always comes from the
-# engine's own distance-only baseline, computed once below.
-#
-# Both alternatives weight lighting, not activity: footfall coverage is only
-# ~0.3% of Dublin edge length today, so an activity-weighted "balanced"
-# profile almost always collapses onto the same path as the lighting-only
-# one. The detour cap is the one axis that reliably produces a genuinely
-# different path with the data actually available right now.
+# Team profiles are real engine preferences, not renamed copies of a route.
 ALTERNATIVE_PROFILES = [
-    ("best_lit", Preferences(well_lit=1.0, busier=0.3, crossings=0.5, less_walking=0.0), 10.0),
-    ("quick_detour", Preferences(well_lit=1.0, busier=0.3, crossings=0.5, less_walking=0.0), 2.0),
+    ('best_lit', Preferences(well_lit=1.0, busier=0.2, crossings=0.5)),
+    ('balanced', Preferences(well_lit=0.6, busier=0.6, crossings=0.6)),
 ]
 
 
@@ -38,10 +37,47 @@ app = FastAPI(title="Ireland After Dark API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173",
+                   "http://localhost:4173", "http://127.0.0.1:4173",
+                   "http://127.0.0.1:5174"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware('http')
+async def no_store(request, call_next):
+    response = await call_next(request)
+    response.headers['Cache-Control'] = 'no-store'
+    return response
+
+
+@app.post('/geocode')
+def geocode(payload: PlaceQuery):
+    try:
+        result = search(payload.query)
+        if result is None:
+            return _error_response('PLACE_NOT_FOUND', 'No matching place found in Ireland. Try latitude, longitude.', 404)
+        return result
+    except (ValueError, OSError):
+        return _error_response('SEARCH_UNAVAILABLE', 'Place search unavailable. Try latitude, longitude.', 503)
+
+
+@app.get('/transport/stops')
+def transport_stops():
+    try:
+        return stops()
+    except (OSError, ValueError, KeyError, TypeError):
+        return _error_response('DATA_UNAVAILABLE', 'Luas stop snapshot is unavailable. Walking routes still work.', 503)
+
+
+@app.get('/transport/status')
+def transport_status():
+    try:
+        return realtime_status()
+    except (OSError, ValueError, KeyError, TypeError):
+        return {'status': 'unavailable', 'received_at_unix': None, 'age_seconds': None,
+                'message': 'Saved NTA snapshot failed validation.'}
 
 
 def _error_response(code: str, message: str, status: int) -> JSONResponse:
@@ -87,17 +123,36 @@ def route(payload: RouteRequest) -> dict:
     area, engine = store.engine_for(origin, destination)
     bbox, _ = store._engines[area]
 
-    fastest = None
-    alternatives = []
-    for kind, prefs, max_extra_minutes in ALTERNATIVE_PROFILES:
-        result = engine.route(origin, destination, prefs, max_extra_minutes)
-        if fastest is None:
-            fastest = result["fastest"]
-        alternatives.append({
-            "kind": kind,
-            "route": result["night"],
-            "status": result["status"],
-            "detour": result["detour"],
-        })
+    time_slice = store.bundle.time_slice
+    activity_enabled = bool(time_slice and departure_slot(payload.departure_time) ==
+                            (time_slice['weekday'], time_slice['hour']))
+    named = []
+    for kind, profile in ALTERNATIVE_PROFILES:
+        prefs = profile if activity_enabled else replace(profile, busier=0.0)
+        profile_result = engine.route(origin, destination, prefs)
+        named.append({'kind': kind, 'route': profile_result['night'],
+                      'status': profile_result['status'], 'detour': profile_result['detour']})
+        if len(named) == 1:
+            result = profile_result
+    result['named_alternatives'] = named
+    result = add_alternatives(engine, result, prefs)
+    candidates = [result['fastest'], result['night'], *[item['route'] for item in named],
+                  *result.get('alternatives', [])]
+    if not activity_enabled:
+        for candidate in candidates:
+            candidate['activity'] = {'score': None, 'coverage': 0.0}
+    if all(candidate['lighting']['score'] is None and candidate['activity']['score'] is None
+           for candidate in candidates):
+        result['status'] = 'baseline_only'
+        for item in named:
+            item['status'] = 'baseline_only'
+    result["area"] = area
+    result["time_slice"] = store.bundle.time_slice
 
-    return build_route_response(area, bbox, fastest, store.bundle.time_slice, alternatives)
+    response = build_route_response(area, bbox, result)
+    response['activity_enabled'] = activity_enabled
+    response['departure_time'] = payload.departure_time.isoformat()
+    if not activity_enabled:
+        for route in response['routes']:
+            route['limitations'].append('Historical activity is excluded from ranking and display: no matching weekday/hour snapshot for this departure.')
+    return attach_hospitals(response)

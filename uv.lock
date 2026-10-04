@@ -361,6 +361,7 @@ name = "ireland-after-dark"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "certifi" },
     { name = "fastapi" },
     { name = "gtfs-realtime-bindings" },
     { name = "networkx" },
@@ -383,6 +384,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "certifi", specifier = ">=2026.7.22" },
     { name = "fastapi", specifier = ">=0.142.2" },
     { name = "gtfs-realtime-bindings", specifier = "==1.0.0" },
     { name = "networkx", specifier = "==3.7" },

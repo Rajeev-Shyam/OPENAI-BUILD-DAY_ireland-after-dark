@@ -9,7 +9,7 @@ _client: MongoClient | None = None
 def get_client() -> MongoClient:
     global _client
     if _client is None:
-        _client = MongoClient(settings.mongodb_uri)
+        _client = MongoClient(settings.mongodb_uri, serverSelectionTimeoutMS=1500, connectTimeoutMS=1500)
     return _client
 
 

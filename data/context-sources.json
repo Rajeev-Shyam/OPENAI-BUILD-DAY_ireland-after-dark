@@ -61,7 +61,7 @@
       "coordinate_system": "EPSG:4326"
     },
     "hospitals_osm": {
-      "url": "https://overpass-api.de/api/interpreter?data=%5Bout%3Acsv%28%3A%3Atype%2C%3A%3Aid%2C%3A%3Alat%2C%3A%3Alon%2Cname%2Camenity%2Cemergency%2Copening_hours%2Caccess%2C%3A%3Acount%3Btrue%3B%22%2C%22%29%5D%5Btimeout%3A25%5D%3Bnwr%5B%22amenity%22%3D%22hospital%22%5D%2853.29%2C-6.39%2C53.41%2C-6.11%29%3Bout+center%3Bout+count%3B",
+      "url": "https://overpass.openstreetmap.fr/api/interpreter?data=%5Bout%3Acsv%28%3A%3Atype%2C%3A%3Aid%2C%3A%3Alat%2C%3A%3Alon%2Cname%2Camenity%2Cemergency%2Copening_hours%2Caccess%2C%3A%3Acount%3Btrue%3B%22%2C%22%29%5D%5Btimeout%3A25%5D%3Bnwr%5B%22amenity%22%3D%22hospital%22%5D%2853.29%2C-6.39%2C53.41%2C-6.11%29%3Bout+center%3Bout+count%3B",
       "catalogue_url": "https://wiki.openstreetmap.org/wiki/Tag:amenity%3Dhospital",
       "filename": "hospitals-osm.csv",
       "license": "ODbL-1.0",

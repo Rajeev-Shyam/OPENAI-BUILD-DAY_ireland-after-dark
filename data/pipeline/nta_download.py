@@ -169,7 +169,7 @@ def download_source(name, spec, output, *, refresh=False, timeout=60, attempts=3
             'fetched_at_utc': datetime.now(timezone.utc).isoformat(),
             'sha256': digest, 'bytes': total, 'content_type': content_type,
             'http_last_modified': modified, 'http_etag': etag,
-            'snapshot': str(snapshot), 'filename': spec['filename'], **metadata}
+            'snapshot': snapshot.as_posix(), 'filename': spec['filename'], **metadata}
         atomic_write(manifest_path, (json.dumps(manifest, indent=2) + '\n').encode())
         copy_atomic(output / snapshot, target)
         return manifest
