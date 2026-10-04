@@ -43,14 +43,26 @@ function confidenceClass(confidence) {
   return confidence === 'High' ? 'high' : confidence === 'Medium' ? 'medium' : 'low';
 }
 
+function factorBar(factor) {
+  const known = factor.value !== null;
+  const pct = known ? Math.max(0, Math.min(100, factor.value)) : 0;
+  return `
+    <div class="factor">
+      <div class="factor-label"><span>${factor.label}</span><b>${known ? `${factor.value.toFixed(0)}%` : 'Unknown'}</b></div>
+      <div class="factor-track"><div class="factor-fill ${known ? '' : 'unknown'}" style="width:${known ? pct : 100}%"></div></div>
+    </div>`;
+}
+
 function routeCard(route) {
   const night = route.kind === 'night';
   const title = night ? 'Night route' : 'Fastest route';
   const minutes = (route.duration_s / 60).toFixed(0);
   const km = (route.distance_m / 1000).toFixed(2);
-  const lighting = route.lighting_coverage_pct === null ? 'Unknown' : `${route.lighting_coverage_pct.toFixed(0)}%`;
   const confidence = route.confidence ?? 'Unknown';
   const explanation = route.explanations[0] || '';
+  const factors = route.score_breakdown.length
+    ? route.score_breakdown.map(factorBar).join('')
+    : '<p class="muted">No recorded lighting or footfall evidence here.</p>';
 
   return `
     <article class="card ${route.kind}">
@@ -58,9 +70,9 @@ function routeCard(route) {
       <div class="stat-row">
         <div class="stat"><b>${minutes}</b><span>min</span></div>
         <div class="stat"><b>${km}</b><span>km</span></div>
-        <div class="stat"><b>${lighting}</b><span>lit</span></div>
       </div>
       <span class="badge ${confidenceClass(confidence)}">${confidence} confidence</span>
+      <div class="factors">${factors}</div>
       <p class="explain">${explanation}</p>
     </article>`;
 }
@@ -77,6 +89,7 @@ function render(data) {
   }
   if (routeLayer.getLayers().length) map.fitBounds(routeLayer.getBounds(), { padding: [60, 60] });
 
+  byId('sheet-intro').textContent = 'Compared using recorded street lighting and historical footfall activity. No crime data is used.';
   byId('sheet-body').innerHTML = data.routes.map(routeCard).join('');
   byId('sheet').hidden = false;
   status('');
