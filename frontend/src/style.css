@@ -124,6 +124,7 @@ button:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px soli
 .stat-row { display: flex; gap: 18px; margin-bottom: 12px; }
 .stat { display: flex; flex-direction: column; }
 .stat b { font-size: 1.3rem; line-height: 1; }
+.stat b small { font-size: .75rem; font-weight: 500; color: #b9c5c9; margin-left: 2px; }
 .stat span { font-size: 0.68rem; color: #9fb0b5; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
 
 .badge {

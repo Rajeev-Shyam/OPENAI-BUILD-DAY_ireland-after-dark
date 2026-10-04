@@ -98,6 +98,7 @@ function routeCard(route, isRecommended = false, data = {}) {
       <div class="stat-row">
         <div class="stat"><b>${minutes}</b><span>min</span></div>
         <div class="stat"><b>${km}</b><span>km</span></div>
+        <div class="stat route-score"><b>${Number.isFinite(route.score) ? `${Math.round(route.score)}<small>/100</small>` : 'Unknown'}</b><span>Route score</span></div>
       </div>
       <span class="badge ${confidenceClass(confidence)}">Data confidence: ${confidence}</span>
       <div class="factors">${factors}</div>
@@ -111,6 +112,7 @@ function routeCard(route, isRecommended = false, data = {}) {
       <button class="view-route" type="button" data-route="${route.kind}" aria-pressed="false">Choose this route</button>
       <details class="evidence"><summary>What to know</summary>
         <ul class="quick-facts">
+          <li><strong>Route score:</strong> Recorded lights and past activity. Missing data is left out.</li>
           <li><strong>Light data coverage:</strong> ${level(route.lighting_coverage_pct)}.</li>
           <li><strong>Working lights:</strong> Not checked.</li>
           <li><strong>Activity:</strong> ${data.activity_enabled === false ? 'No data for this time.' : route.historical_activity === null ? 'Unknown.' : 'Past counts, not live.'}</li>
