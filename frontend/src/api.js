@@ -21,15 +21,46 @@ export function validateResponse(data) {
   }
   return data;
 }
-export async function getRoutes(payload, { mode, scenario, baseUrl = '', fetcher = fetch, signal } = {}) {
+export function normalizePhase1Response(data) {
+  const levels = { low:'Low', medium:'Medium', high:'High' };
+  const textList = value => Array.isArray(value) && value.every(item => typeof item === 'string');
+  if (!data?.routes?.fastest || !data.routes.night || !levels[data.data_confidence?.level]
+      || !textList(data.data_confidence.reasons) || !textList(data.explanation) || !textList(data.warnings)
+      || !data.score_breakdown || typeof data.score_breakdown !== 'object' || Array.isArray(data.score_breakdown)
+      || !Object.values(data.score_breakdown).every(value => optionalNumber(value,100))) {
+    throw new RouteError('INVALID_RESPONSE','The API response does not match docs/api-contract.md.');
+  }
+  return {
+    mode:'walking',
+    coverage:{bounds:null,description:'This API contract does not provide graph bounds. An Ireland map does not establish routing support.'},
+    routes:['fastest','night'].map(kind => {
+      const route = data.routes[kind];
+      return {kind,geometry:route.geometry,distance_m:route.distance_metres,duration_s:Number.isFinite(route.duration_minutes) ? route.duration_minutes * 60 : NaN,
+        lighting_coverage_pct:null,historical_activity:null,waiting:null,score:route.route_score,
+        score_breakdown:kind === 'night' ? Object.entries(data.score_breakdown).map(([label,value]) => ({label,value,max:100})) : [],
+        confidence:levels[data.data_confidence.level],
+        limitations:[...data.data_confidence.reasons,...data.warnings,'Confidence is supplied for the overall comparison. Measured lighting coverage, activity values and source dates are not supplied by this API contract; factor scores are not substituted for these metrics.'],
+        explanations:kind === 'night' ? data.explanation : [],sources:[]};
+    })
+  };
+}
+export async function getRoutes(payload, { mode, scenario, baseUrl = '', contract = 'phase1', fetcher = fetch, signal } = {}) {
   let data;
   if (mode === 'mock') data = fixture(scenario);
   else {
+    if (!['phase1','development'].includes(contract)) throw new RouteError('INVALID_CONFIGURATION','Choose the phase1 or development API contract.');
+    const body = contract === 'phase1' ? {
+      origin:{lat:payload.origin[1],lng:payload.origin[0]},
+      destination:{lat:payload.destination[1],lng:payload.destination[0]},
+      departure_time:payload.departure_time
+    } : payload;
     let response;
-    try { response = await fetcher(`${baseUrl.replace(/\/$/,'')}/route`, { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify(payload), signal, credentials: 'omit', cache: 'no-store' }); }
+    try { response = await fetcher(`${baseUrl.replace(/\/$/,'')}/route`, { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify(body), signal, credentials: 'omit', cache: 'no-store' }); }
     catch (error) { if (error.name === 'AbortError') throw error; throw new RouteError('NETWORK_ERROR','Cannot reach the API. Check its address and CORS settings. Demo mode has not been enabled.'); }
     try { data = await response.json(); } catch { throw new RouteError('INVALID_RESPONSE','The API did not return JSON.'); }
     if (!response.ok && !data?.error) throw new RouteError('API_ERROR',`API request failed (${response.status}).`);
+    if (data?.error?.code === 'OUT_OF_AREA') data.error.code = 'UNSUPPORTED_AREA';
+    if (!data?.error && contract === 'phase1') data = normalizePhase1Response(data);
   }
   if (data?.error) throw new RouteError(data.error.code || 'API_ERROR', String(data.error.message || 'The request failed.'));
   return validateResponse(data);

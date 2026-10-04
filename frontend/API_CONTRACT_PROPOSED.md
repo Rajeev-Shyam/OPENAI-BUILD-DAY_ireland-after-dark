@@ -1,5 +1,13 @@
 # PROPOSED POST /route contract
 
+## Superseded for the team API
+
+The merged `docs/api-contract.md` is now the shared API wire contract. This earlier
+proposal is retained solely as the internal UI/development-bridge shape. The adapter
+defaults to `VITE_API_CONTRACT=phase1`; use `development` only with dev_api.py.
+There is no automatic contract detection or silent fallback. The phase1 scaffold
+currently implements /health but not /route.
+
 Awaiting Person 4 agreement. Compatibility with Person 4's API is not established.
 The frontend-owned `dev_api.py` bridge now implements this shape against the merged
 routing engine for local testing. This does not establish agreement with Person 4's

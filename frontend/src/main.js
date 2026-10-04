@@ -133,7 +133,7 @@ byId('compare').addEventListener('click', async () => {
   const timeout = setTimeout(() => activeController.abort('timeout'),15000);
   byId('compare').disabled = true; status(mock ? 'Loading synthetic demo routes…' : 'Finding walking routes…');
   try {
-    const data = await getRoutes(payload,{mode:mock ? 'mock' : 'api',scenario:byId('scenario').value,baseUrl:import.meta.env.VITE_API_BASE_URL || '',signal:activeController.signal});
+    const data = await getRoutes(payload,{mode:mock ? 'mock' : 'api',scenario:byId('scenario').value,baseUrl:import.meta.env.VITE_API_BASE_URL || '',contract:import.meta.env.VITE_API_CONTRACT || 'phase1',signal:activeController.signal});
     if (current === revision) render(data,mock);
   } catch (error) {
     if (current === revision) status(activeController.signal.reason === 'timeout' ? 'The API request timed out. Demo mode has not been enabled.' : `${error.code || 'REQUEST_ERROR'}: ${error.message}`,true);
