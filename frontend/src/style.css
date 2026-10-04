@@ -26,6 +26,7 @@ button { font: inherit; cursor: pointer; }
 }
 .brand-mark { color: var(--amber); font-size: 1.2rem; }
 .brand b { color: var(--amber); }
+.brand .tagline { font-weight: 500; font-size: .72rem; color: #9fb0b5; margin-left: 4px; }
 
 .panel {
   position: relative;
@@ -153,6 +154,7 @@ button:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px soli
 @keyframes fade-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 
 @media (max-width: 640px) {
+  .brand .tagline { display: none; }
   .sidebar { width: calc(100vw - 32px); left: 16px; top: 68px; max-height: 62dvh; }
   .brand { left: 16px; top: 16px; }
   #sheet-body { grid-template-columns: 1fr; }
