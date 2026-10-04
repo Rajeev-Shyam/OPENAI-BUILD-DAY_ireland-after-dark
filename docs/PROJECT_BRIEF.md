@@ -1,5 +1,10 @@
 # Team project brief
 
+**Historical starter proposal.** The subsequent team task split targets Ireland
+routing with Dublin-specific evidence. Person 2's current implementation scope
+and acceptance gates are in [data-plan.md](data-plan.md). The narrower scope and
+timing assumptions below predate that split.
+
 ## Direction
 
 The team proposed an after-dark route tool using public data for Build for Ireland on 4 October 2026. Intended build window: four hours. Final feature scope and roles remain to be agreed.

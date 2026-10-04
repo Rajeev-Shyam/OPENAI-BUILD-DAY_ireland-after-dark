@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "sources": {
+    "lighting": {
+      "url": "https://data.smartdublin.ie/dataset/064a3764-84aa-48d0-ac43-f5b45f229584/resource/41e3bf5e-74a3-4d98-9de7-fdf7c57f7c6b/download/dcc-pl-assert-list_open-data_260321.csv",
+      "catalogue_url": "https://data.smartdublin.ie/dataset/street-lighting-dublin-city",
+      "resource_id": "41e3bf5e-74a3-4d98-9de7-fdf7c57f7c6b",
+      "filename": "lighting.csv",
+      "required_columns": [
+        "ID",
+        "unit_type",
+        "latitude",
+        "longitude"
+      ],
+      "reject_cyclists": false,
+      "license": {
+        "id": "CC-BY-4.0",
+        "title": "Creative Commons Attribution 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/",
+        "version": "4.0",
+        "smart_dublin_metadata": {
+          "id": "cc-by",
+          "title": "Creative Commons Attribution",
+          "url": "http://www.opendefinition.org/licenses/cc-by"
+        },
+        "verification_url": "https://data.gov.ie/api/3/action/package_show?id=street-lighting-dublin-city"
+      },
+      "attribution": "Dublin City Council via Smart Dublin",
+      "verified_on": "2026-10-04"
+    },
+    "footfall_counts": {
+      "url": "https://data.smartdublin.ie/dataset/cc421859-1f4f-43f6-b349-f4ca0e1c60fa/resource/71d3bd5b-3f7a-40fa-94b4-022a97f804e2/download/pedestrain-counts-1-jan-2-jun-2026.csv",
+      "catalogue_url": "https://data.smartdublin.ie/dataset/dublin-city-centre-footfall-counters",
+      "resource_id": "71d3bd5b-3f7a-40fa-94b4-022a97f804e2",
+      "filename": "footfall_counts.csv",
+      "required_columns": [
+        "Time",
+        "Aston Quay/Fitzgeralds"
+      ],
+      "reject_cyclists": true,
+      "license": {
+        "id": "CC-BY-4.0",
+        "title": "Creative Commons Attribution 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/",
+        "version": "4.0",
+        "smart_dublin_metadata": {
+          "id": "cc-by",
+          "title": "Creative Commons Attribution",
+          "url": "http://www.opendefinition.org/licenses/cc-by"
+        },
+        "verification_url": "https://data.gov.ie/api/3/action/package_show?id=dublin-city-centre-footfall-counters"
+      },
+      "attribution": "Dublin City Council and National Transport Authority via Smart Dublin",
+      "verified_on": "2026-10-04"
+    },
+    "footfall_locations": {
+      "url": "https://data.smartdublin.ie/dataset/cc421859-1f4f-43f6-b349-f4ca0e1c60fa/resource/215d83bd-003d-4c1a-ac0d-b1132661746c/download/dublin-city-centre-footfall-counter-locations-18072023.csv",
+      "catalogue_url": "https://data.smartdublin.ie/dataset/dublin-city-centre-footfall-counters",
+      "resource_id": "215d83bd-003d-4c1a-ac0d-b1132661746c",
+      "filename": "footfall_locations.csv",
+      "required_columns": [
+        "Counter Locations",
+        "Eco-Visio Oupput",
+        "Latitude",
+        "Longitude",
+        "User Type"
+      ],
+      "reject_cyclists": false,
+      "license": {
+        "id": "CC-BY-4.0",
+        "title": "Creative Commons Attribution 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/",
+        "version": "4.0",
+        "smart_dublin_metadata": {
+          "id": "cc-by",
+          "title": "Creative Commons Attribution",
+          "url": "http://www.opendefinition.org/licenses/cc-by"
+        },
+        "verification_url": "https://data.gov.ie/api/3/action/package_show?id=dublin-city-centre-footfall-counters"
+      },
+      "attribution": "Dublin City Council and National Transport Authority via Smart Dublin",
+      "verified_on": "2026-10-04"
+    }
+  }
+}

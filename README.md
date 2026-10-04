@@ -2,7 +2,32 @@
 
 A Build for Ireland prototype exploring walking-route choices after dark in Dublin.
 
-**Status: team starter repository. The application is not built yet.**
+**Status: Person 2's core data pipeline is implemented and tested. The routing
+application and real-graph integration are not built or verified here yet.**
+
+The latest task split targets routing across Ireland, with Dublin-specific
+lighting and footfall evidence. The earlier demo proposal below remains historical
+context; it does not override the latest scope.
+
+## Data pipeline handoff
+
+Start with the [edge-data contract and run commands](docs/edge-data-contract.md),
+[source audit](docs/data-sources.md), and [work allocation](docs/data-plan.md).
+The pipeline downloads pinned public snapshots, cleans lighting and historical
+footfall, and enriches the routing team's supplied edge GeoJSON. It preserves
+unknowns outside evidence coverage and records source/graph fingerprints.
+
+```sh
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements-data.txt
+.venv/bin/python -m data.pipeline.download --source all
+.venv/bin/python -m pytest -q
+```
+
+The contract explains how to build the processed edge file. A graph from Person 1
+is required for actual routing; the included synthetic geometry is only a test
+fixture. Review [validation status](docs/data-validation.md) before declaring a
+deliverable complete.
 
 ## Proposed first demo
 
@@ -20,15 +45,21 @@ cd dublin-after-dark
 git switch -c codex/your-task
 ```
 
-Agree roles and scope using [the brief](docs/PROJECT_BRIEF.md). Read [the verified data notes](docs/DATA_SOURCES.md) before coding. Use separate branches and review before merging into main.
+The [original brief](docs/PROJECT_BRIEF.md) records the starter proposal. Use the
+latest task split and [data plan](docs/data-plan.md) for current Person 2 scope.
+Read [the verified data notes](docs/data-sources.md) before coding. Use separate
+branches and review before merging into main.
 
-Python backend and a simple browser interface are proposed. Framework/dependencies are unselected; create your own local environment. No application run command or working route engine exists yet.
+Python backend and a simple browser interface are proposed. Application frameworks
+remain unselected; data-pipeline dependencies are in `requirements-data.txt`.
+No application run command or working route engine exists yet.
 
 ## Structure
 
 - `src/`: application code.
 - `tests/`: application checks.
 - `data/raw/` and `data/processed/`: local data; payloads ignored pending review.
+- `data/pipeline/`: download, clean, match and export commands.
 - `docs/`: team brief and source evidence.
 - `.env.example`: empty placeholders only.
 
