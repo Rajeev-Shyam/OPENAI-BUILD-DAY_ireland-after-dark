@@ -1,6 +1,6 @@
-# Versions exercised by the data pipeline; Python >=3.9.
-shapely==2.0.7
-pyproj==3.6.1
-pytest==8.4.2
+# Shared phase1 runtime: Python >=3.12; versions match pyproject.toml.
+shapely==2.1.2
+pyproj==3.8.0
+pytest==9.1.1
 gtfs-realtime-bindings==1.0.0
 protobuf==6.33.6

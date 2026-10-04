@@ -35,13 +35,16 @@ Details: [`backend/routing/README.md`](backend/routing/README.md)
 | Street-light cleaning, edge matching, lighting density | ✅ |
 | Footfall cleaning, weekday/hour averaging, edge matching | ✅ code exists; thin coverage (34 counters, city-centre only) |
 | Per-edge score export + per-source coverage flags (nullable, not zero) | ✅ |
-| P1: SCATS signals + OSM crossings | ❌ |
-| P1: Garda/fire/hospital points layer | ❌ |
+| P1: SCATS signals + OSM crossings | ⚠️ verified site layer and conservative OSM evidence export; crossing costs still pending |
+| P1: Garda/fire/hospital points layer | ✅ bounded source layers; see [receipt](docs/context-data.md) for geography and access limits |
 | P1: RSA collisions | ❌ |
 | P2: CSO crime context | ❌ |
-| Integration against Person 1's real Dublin graph | ⚠️ bundle built on the real graph (267,580 edges, all matched, 2 min 18 s); manual check of river/parallel-street matches still open |
+| Integration against Person 1's real Dublin graph | ✅ 267,580 edge records validated and exercised by actual routing |
+| NTA static GTFS + realtime acquisition/QA | ✅ integrated; transit journey planning remains separate |
+| Departure-time activity lookup | ✅ data-side evaluator; API/store wiring and caching remain |
 
-Details: [`docs/data-validation.md`](docs/data-validation.md)
+Details: [`docs/phase1-data-validation.md`](docs/phase1-data-validation.md) (current integration receipt);
+[`docs/data-validation.md`](docs/data-validation.md) (original source/fixture validation).
 
 ### Person 3 — Frontend (`frontend/`)
 
@@ -80,6 +83,15 @@ Details: [`docs/ACCEPTANCE_CHECKLIST.md`](docs/ACCEPTANCE_CHECKLIST.md) (every c
 the loop: merge the latest `frontend` branch (its phase1 API adapter is not on
 this branch yet) and check it in a browser against the real API; then Person 4
 replaces the provisional scoring in `backend/api/route.py` with `backend/scoring/`.
+
+## NTA public transport data
+
+The [NTA handoff guide](docs/transport-data-contract.md) covers static GTFS downloads,
+SQLite timetable processing, stop GeoJSON, authenticated realtime snapshots and
+static/realtime identifier audits. [Validation status](docs/nta-validation.md)
+records real static-feed checks and successful authenticated realtime fetches,
+including stale observations and unresolved timetable references. This addition prepares data for the transport team; it does not provide
+multimodal routing or waiting-time recommendations.
 
 ## NTA public transport data
 
@@ -140,18 +152,23 @@ Tests: `uv run pytest` (backend), `cd frontend && npm test && npm run test:brows
 
 ### Run the routing engine and data pipeline
 
-These currently use their own `pip`/`venv` environment (not yet folded into the
-`uv` project above):
+The API, routing engine, lighting/footfall pipeline and NTA tools share the
+Python 3.12+ environment and `uv.lock`:
 
 ```sh
-python3 -m venv .venv-routing
-.venv-routing/bin/pip install -r requirements.txt -r requirements-data.txt
-.venv-routing/bin/python -m data.pipeline.download --source all
-.venv-routing/bin/python -m pytest -q
+uv sync --frozen
+uv run python -m data.pipeline.download --source all
+uv run python -m backend.routing --area dublin
+uv run python -m data.pipeline.build --edges data/raw/walking_edges.geojson --weekday 4 --hour 23
+uv run pytest -q
 ```
 
 See [`backend/routing/README.md`](backend/routing/README.md) for routing engine usage and
 [`docs/edge-data-contract.md`](docs/edge-data-contract.md) for the data pipeline's output contract.
+
+Docker mounts `data/raw` and `data/processed` from the host, so prepare the graph
+and score bundle before starting routes. The image includes the data pipeline
+code and source registries; downloaded payloads and credentials are not baked in.
 
 ## Structure
 

@@ -15,10 +15,12 @@ from pathlib import Path
 import networkx as nx
 import osmnx as ox
 
+from data.pipeline.crossings import EVIDENCE_VERSION, export_crossing_evidence
+
 from . import config
 
 # Kept on edges so crossings and tagged lighting can be inspected later.
-EXTRA_WAY_TAGS = ["footway", "crossing", "lit", "foot"]
+EXTRA_WAY_TAGS = ["footway", "crossing", "crossing:signals", "lit", "foot"]
 
 
 def cache_path(name: str) -> Path:
@@ -38,9 +40,12 @@ def download_graph(bbox: tuple[float, float, float, float]) -> nx.MultiDiGraph:
         ox.settings.overpass_url = url
         try:
             # Largest connected component only, so a snap never lands on an island.
-            return ox.graph_from_bbox(
+            G = ox.graph_from_bbox(
                 bbox=bbox, network_type="walk", simplify=True, retain_all=False
             )
+            # Preserve OSMnx buffer -> simplify -> truncate ordering.
+            G.graph["dad_crossing_evidence_version"] = EVIDENCE_VERSION
+            return G
         except Exception as error:  # server down, overloaded or timed out
             failures.append(f"{url}: {error}")
     raise RuntimeError("Every Overpass endpoint failed:\n" + "\n".join(failures))
@@ -100,7 +105,10 @@ def export_edges(G: nx.MultiDiGraph, path: Path = config.EDGES_GEOJSON_PATH) -> 
                 continue  # zero-length edge: the pipeline rejects these
             feature = {
                 "type": "Feature",
-                "properties": {"u": str(u), "v": str(v), "key": str(key)},
+                "properties": {"u": str(u), "v": str(v), "key": str(key),
+                               "osm_crossing_evidence": export_crossing_evidence(
+                                   data, way_tags_complete=G.graph.get(
+                                       "dad_crossing_evidence_version") == EVIDENCE_VERSION)},
                 "geometry": {"type": "LineString", "coordinates": coordinates},
             }
             handle.write(("," if written else "") + json.dumps(feature) + "\n")

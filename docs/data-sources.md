@@ -63,3 +63,11 @@ data-pipeline implementation; Met Éireann ingestion is not implemented.
 ## Honest completion boundary
 
 P0 source acquisition is implemented and tested. “Download every dataset” cannot truthfully be marked complete across all proposed P1/P2 sources: the table explicitly distinguishes discovered URLs from tested downloads and unresolved access/licensing. Further sources should be added to the registry only after actual payload and schema checks. Missing geographic coverage remains unknown, including outside Dublin. None of these sources establishes that a route is safe.
+
+## Phase1 contextual layers and integration
+
+See [context-data.md](context-data.md) for pinned Garda, fire, hospital and SCATS
+resources, licences, cleaning rules, geographic limits and actual download receipts.
+[OSM crossing evidence](crossing-data.md) remains separate from crossing costs.
+The [phase1 validation receipt](phase1-data-validation.md) records the real graph
+handoff and runtime checks.

@@ -5,13 +5,11 @@ services:
       dockerfile: backend/Dockerfile
     container_name: ireland-after-dark-backend
     env_file: .env
-    ports:
-      - "8000:8000"
     volumes:
-      # Walking graph, edge export and score bundle built on the host
-      # (see backend/routing/README.md). Without them /route has no scores.
       - ./data/raw:/app/data/raw
       - ./data/processed:/app/data/processed
+    ports:
+      - "8000:8000"
 
   frontend:
     build:

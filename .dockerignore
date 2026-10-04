@@ -9,3 +9,7 @@ data/raw
 data/processed
 *.log
 .DS_Store
+
+.cache
+.env
+.env.*
