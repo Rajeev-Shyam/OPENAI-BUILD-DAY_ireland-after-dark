@@ -1,7 +1,9 @@
 # Person 3 handoff
 
-4 October 2026. Branch: `codex/frontend`, created from fetched
-`origin/docs/task-split` at `3f969b0`. Frontend-only contribution; no push or merge.
+4 October 2026. Sharing branch: `frontend`, created from the completed
+`codex/frontend` implementation at `81c1db8`, based on fetched
+`origin/docs/task-split` at `3f969b0`. The owner authorises pushing only `frontend`
+from now on. No merge into another branch is authorised.
 
 ## Implemented
 
