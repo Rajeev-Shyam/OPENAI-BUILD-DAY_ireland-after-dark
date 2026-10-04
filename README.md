@@ -80,6 +80,15 @@ Details: [`docs/ACCEPTANCE_CHECKLIST.md`](docs/ACCEPTANCE_CHECKLIST.md) (every c
 bundle into `POST /route`, then point Person 3's frontend at it with the Real
 API switch — that one path closes the loop for everyone.
 
+## NTA public transport data
+
+The [NTA handoff guide](docs/transport-data-contract.md) covers static GTFS downloads,
+SQLite timetable processing, stop GeoJSON, authenticated realtime snapshots and
+static/realtime identifier audits. [Validation status](docs/nta-validation.md)
+records real static-feed checks and successful authenticated realtime fetches,
+including stale observations and unresolved timetable references. This addition prepares data for the transport team; it does not provide
+multimodal routing or waiting-time recommendations.
+
 ## Proposed first demo
 
 Compare the shortest walking route with an alternative favouring proximity to recorded public lighting assets, within a user's acceptable detour. Show both paths, calculated distance, estimated time, source dates and missing information.
