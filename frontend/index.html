@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="strict-origin-when-cross-origin"><title>Ireland After Dark</title></head>
+<body>
+<header><p class="eyebrow">IRELAND AFTER DARK</p><h1>A clearer picture of your walk.</h1><p>Compare walking routes with recorded lighting and historical pedestrian activity.</p></header>
+<main>
+<div id="demo-banner" class="warning"><strong>Demo data — not a real journey recommendation.</strong> All routes and metrics are synthetic.</div>
+<section class="controls" aria-label="Journey controls">
+<div class="row"><label>Data mode<select id="mode"><option value="mock">Demo (synthetic)</option><option value="api">Real API</option></select></label><label id="scenario-label">Demo scenario<select id="scenario"><option value="normal">Two routes</option><option value="identical">Identical routes</option><option value="low">Low confidence / missing data</option><option value="unsupported">Unsupported area</option><option value="no-route">No route</option></select></label></div>
+<p id="mode-note">Demo uses a fixed illustrative Dublin journey, regardless of selected endpoints.</p>
+<div class="row" id="locations"></div>
+<p class="muted">Search the local directory of approximate town centres, or choose a point on the map. No address lookup. Search stays on this device.</p>
+<div class="row"><label>Departure · Europe/Dublin<input id="departure" type="datetime-local" required></label><label>Clock change occurrence<select id="occurrence"><option value="earlier">First occurrence (default)</option><option value="later">Second occurrence</option></select></label></div>
+<p class="muted">Occurrence matters only when clocks go back. Nonexistent spring clock times are rejected.</p>
+<button id="compare" type="button">Compare routes</button>
+</section>
+<p id="status" role="status" aria-live="polite">Choose endpoints, then compare routes.</p>
+<p id="coverage" class="coverage">Backend-supported bounds: unknown. An Ireland map does not establish routing coverage.</p>
+<section aria-label="Route map"><div class="map-tools"><button id="fit" type="button">Show routes</button><span><b class="fastest">━━ Fastest</b> · <b class="night">┄┄ Night</b> · dashed grey: returned routing bounds</span></div><div id="map" aria-label="Ireland map; use the labelled coordinate fields as a keyboard alternative"></div><p id="map-status" role="status"></p></section>
+<section id="results" aria-label="Route comparison" aria-live="polite"></section>
+<footer>Recorded lighting coverage does not prove lamps work. Historical activity is not live crowds or safety. Route preference scores do not predict danger. Walking times are estimates.<br>Map tiles: <a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a>. Viewing the map sends tile requests to OpenStreetMap. No journey history is stored.</footer>
+</main><script type="module" src="/src/main.js"></script>
+</body></html>
