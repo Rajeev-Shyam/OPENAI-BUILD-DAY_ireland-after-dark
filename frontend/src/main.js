@@ -59,25 +59,33 @@ function confidenceClass(confidence) {
   return confidence === 'High' ? 'high' : confidence === 'Medium' ? 'medium' : 'low';
 }
 
+function level(value) {
+  return !Number.isFinite(value) ? 'Unknown' : value >= 70 ? 'High' : value >= 40 ? 'Medium' : 'Low';
+}
+
 function factorBar(factor) {
-  const known = factor.value !== null;
-  const pct = known ? Math.max(0, Math.min(100, factor.value)) : 0;
+  const known = Number.isFinite(factor.value);
+  const pct = known ? Math.max(0, Math.min(100, factor.value / (factor.max || 100) * 100)) : null;
+  const label = {'Recorded lighting':'Recorded lights', 'Historical activity':'Past activity'}[factor.label] || factor.label;
   return `
     <div class="factor">
-      <div class="factor-label"><span>${escapeHTML(factor.label)}</span><b>${known ? `${factor.value.toFixed(0)}/100` : 'Unknown'}</b></div>
+      <div class="factor-label"><span>${escapeHTML(label)}</span><b>${level(pct)}</b></div>
       <div class="factor-track"><div class="factor-fill ${known ? '' : 'unknown'}" style="width:${known ? pct : 100}%"></div></div>
     </div>`;
 }
 
-function routeCard(route, isRecommended = false) {
+function routeCard(route, isRecommended = false, data = {}) {
   const title = routeTitles[route.kind];
   const minutes = (route.duration_s / 60).toFixed(0);
   const km = (route.distance_m / 1000).toFixed(2);
   const confidence = route.confidence ?? 'Unknown';
-  const explanation = route.explanations[0] || '';
+  const fastest = data.routes?.find(candidate => candidate.kind === 'fastest');
+  const extraMinutes = fastest ? Math.max(0, (route.duration_s - fastest.duration_s) / 60) : 0;
+  const explanation = route.kind === 'fastest' ? 'Shortest walk.'
+    : `${isRecommended ? 'Highest data score among the alternatives. ' : ''}${extraMinutes < 0.5 ? 'Similar walking time.' : `About ${Math.round(extraMinutes)} min extra walking.`}`;
   const factors = route.score_breakdown.length
     ? route.score_breakdown.map(factorBar).join('')
-    : '<p class="muted">No recorded lighting or footfall evidence here.</p>';
+    : '<p class="muted"><strong>Lights and activity:</strong> Unknown.</p>';
   const hospitals = route.nearby_hospitals === null || route.nearby_hospitals === undefined
     ? '<p class="muted">Hospital data unavailable.</p>'
     : route.nearby_hospitals.length
@@ -91,19 +99,33 @@ function routeCard(route, isRecommended = false) {
         <div class="stat"><b>${minutes}</b><span>min</span></div>
         <div class="stat"><b>${km}</b><span>km</span></div>
       </div>
-      <span class="badge ${confidenceClass(confidence)}">${confidence} confidence</span>
+      <span class="badge ${confidenceClass(confidence)}">Data confidence: ${confidence}</span>
       <div class="factors">${factors}</div>
-      <p class="muted">Lamp operating status: unknown. Recorded assets do not confirm working lights.</p>
+      <p class="muted"><strong>Working lights:</strong> Unknown.</p>
       <p class="explain">${escapeHTML(explanation)}</p>
       <details class="nearby-hospitals"><summary>${route.nearby_hospitals?.length ?? 'Unknown'} nearby mapped hospitals</summary>
         ${hospitals}
-        <p class="muted">Within 1 km straight-line of the route, not a walk to an entrance. Opening hours and emergency care are unverified.</p>
+        <p class="muted"><strong>Distance:</strong> Within 1 km in a straight line. Walking may be longer.</p>
+        <p class="muted"><strong>Open now / emergency care:</strong> Not checked.</p>
       </details>
-      <button class="view-route" type="button" data-route="${route.kind}">Show this route on map</button>
-      <details class="evidence"><summary>Evidence and limitations</summary>
-        <p class="muted">Recorded lighting evidence: ${route.lighting_coverage_pct === null ? 'Unknown' : `${route.lighting_coverage_pct.toFixed(1)}% of route length`}. Walking time is an estimate, not a guarantee.</p>
-        <ul>${route.limitations.map(item => `<li>${escapeHTML(item)}</li>`).join('')}</ul>
-        <ul>${route.sources.map(source => `<li>${escapeHTML(source.name)} (${escapeHTML(source.date || 'date unknown')}) — ${escapeHTML(source.attribution)}</li>`).join('')}</ul>
+      <button class="view-route" type="button" data-route="${route.kind}" aria-pressed="false">Choose this route</button>
+      <details class="evidence"><summary>What to know</summary>
+        <ul class="quick-facts">
+          <li><strong>Light data coverage:</strong> ${level(route.lighting_coverage_pct)}.</li>
+          <li><strong>Working lights:</strong> Not checked.</li>
+          <li><strong>Activity:</strong> ${data.activity_enabled === false ? 'No data for this time.' : route.historical_activity === null ? 'Unknown.' : 'Past counts, not live.'}</li>
+          <li><strong>Walking time:</strong> Estimate only.</li>
+          <li><strong>Path access:</strong> Closures not checked.</li>
+          <li><strong>Safety:</strong> Not a safety rating.</li>
+        </ul>
+        <details class="source-details"><summary>Sources and full details</summary>
+          <p class="muted">Display bands: Low below 40; Medium 40–69; High 70–100. These describe the data, not safety.</p>
+          <p class="muted">Light data covers ${route.lighting_coverage_pct === null ? 'an unknown amount' : `${route.lighting_coverage_pct.toFixed(1)}%`} of this route.</p>
+          <ul class="full-explanations">${route.explanations.map(item => `<li>${escapeHTML(item)}</li>`).join('')}</ul>
+          <ul>${route.limitations.map(item => `<li>${escapeHTML(item)}</li>`).join('')}</ul>
+          <ul>${route.sources.map(source => `<li><strong>${escapeHTML(source.name)}</strong> (${escapeHTML(source.date || 'date unknown')}) — ${escapeHTML(source.attribution)}</li>`).join('')}</ul>
+          ${data.hospital_context?.attribution ? `<p class="muted">Hospitals: ${escapeHTML(data.hospital_context.attribution)}. Updated ${escapeHTML(data.hospital_context.fetched_at_utc?.slice(0,10) || 'date unknown')}.</p>` : ''}
+        </details>
       </details>
     </article>`;
 }
@@ -136,9 +158,10 @@ function render(data) {
     : {paddingTopLeft:[20,window.innerHeight*.72],paddingBottomRight:[20,35]};
   if (routeLayer.getLayers().length) map.fitBounds(routeLayer.getBounds(), padding());
 
-  byId('sheet-intro').textContent = `${data.routes.length} walking option${data.routes.length === 1 ? '' : 's'} found, within the five-minute detour limit. ${data.routes.length < 3 ? 'Fewer than three distinct candidates were found. ' : ''}Recorded lighting and historical activity are not a safety guarantee. ${data.hospital_context?.attribution ? `${data.hospital_context.attribution}; hospitals fetched ${data.hospital_context.fetched_at_utc.slice(0,10)}.` : ''}`;
   const recommended = recommendedKind(data.routes);
-  byId('sheet-body').innerHTML = data.routes.map(route => routeCard(route, route.kind === recommended)).join('');
+  byId('sheet-intro').textContent = `${data.routes.length} route${data.routes.length === 1 ? '' : 's'}. ${recommended ? 'Recommended route selected.' : 'Fastest route selected; no scored alternative.'} Up to 5 min extra walking.`;
+  const displayRoutes = [...data.routes].sort((a,b) => Number(b.kind === recommended) - Number(a.kind === recommended));
+  byId('sheet-body').innerHTML = displayRoutes.map(route => routeCard(route, route.kind === recommended, data)).join('');
   for (const button of byId('sheet-body').querySelectorAll('.view-route')) {
     button.addEventListener('click', () => {
       const route = data.routes.find(r=>r.kind===button.dataset.route);
@@ -153,10 +176,15 @@ function render(data) {
       map.fitBounds(lines[route.kind].getBounds(),padding());
       for (const card of byId('sheet-body').querySelectorAll('.card')) card.classList.remove('selected');
       button.closest('.card').classList.add('selected');
+      for (const choice of byId('sheet-body').querySelectorAll('.view-route')) {
+        choice.setAttribute('aria-pressed', String(choice === button));
+        choice.textContent = choice === button ? 'Selected route' : 'Choose this route';
+      }
+      byId('sheet-intro').textContent = `${data.routes.length} route${data.routes.length === 1 ? '' : 's'}. ${route.kind === recommended ? 'Recommended route selected.' : `${routeTitles[route.kind]} selected.`} Up to 5 min extra walking.`;
     });
   }
   byId('sheet').hidden = false;
-  byId('sheet-body').querySelector('.view-route')?.click();
+  byId('sheet-body').querySelector(`[data-route="${recommended || 'fastest'}"]`)?.click();
   status('');
 }
 

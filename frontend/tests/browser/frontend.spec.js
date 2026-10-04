@@ -12,17 +12,26 @@ test('phase1 cards show factors, caveats, and clear stale results on edit',async
   await setup(page);await page.getByRole('button',{name:'Find route'}).click();
   await expect(page.getByRole('heading',{name:/Night route/})).toBeVisible();
   await expect(page.locator('.recommended')).toHaveCount(1);
-  await expect(page.locator('.factor-label').first()).toContainText('Recorded lighting');
-  await page.getByText('Evidence and limitations',{exact:true}).first().click();
-  await expect(page.locator('details.evidence').first()).toContainText('Synthetic example');
+  await expect(page.locator('.card.selected')).toHaveClass(/night/);
+  await expect(page.locator('.view-route[aria-pressed="true"]')).toHaveAttribute('data-route','night');
+  await expect(page.locator('.factor-label').first()).toHaveText('Recorded lightsHigh');
+  await page.getByText('What to know',{exact:true}).first().click();
+  await expect(page.locator('.quick-facts').first()).toContainText('Working lights: Not checked.');
+  await page.getByText('Sources and full details',{exact:true}).first().click();
+  await expect(page.locator('details.source-details').first()).toContainText('Synthetic example');
+  await page.locator('.card.fastest .view-route').click();
+  await expect(page.locator('.card.selected')).toHaveClass(/fastest/);
+  await expect(page.locator('.view-route[aria-pressed="true"]')).toHaveCount(1);
   await page.getByLabel('Start',{exact:true}).fill('53.3480, -6.2500');
   await expect(page.locator('#sheet')).toBeHidden();
 });
 test('identical routes and unknown evidence render honestly',async({page})=>{
   await setup(page,'low');await page.getByRole('button',{name:'Find route'}).click();
   await expect(page.locator('.card')).toHaveCount(2);
-  await expect(page.locator('.badge').first()).toHaveText('Low confidence');
-  await expect(page.locator('.factors').first()).toContainText('No recorded');
+  await expect(page.locator('.badge').first()).toHaveText('Data confidence: Low');
+  await expect(page.locator('.factors').first()).toContainText('Unknown');
+  await expect(page.locator('.card.selected')).toHaveClass(/fastest/);
+  await expect(page.locator('.recommended')).toHaveCount(0);
 });
 test('no-route and network errors do not fall back to fixtures',async({page})=>{
   await setup(page,'no-route');await page.getByRole('button',{name:'Find route'}).click();
@@ -36,9 +45,11 @@ test('server text is escaped and never executes HTML',async({page})=>{
   await setup(page);const data=fixture('normal');data.routes[0].explanations=['<img src=x onerror="window.injected=true">'];
   await page.route('**/route',route=>route.fulfill({json:data}));
   await page.getByRole('button',{name:'Find route'}).click();
-  await expect(page.locator('.explain').first()).toContainText('<img');
+  await page.locator('.card.fastest .evidence > summary').click();
+  await page.locator('.card.fastest .source-details > summary').click();
+  await expect(page.locator('.card.fastest .full-explanations')).toContainText('<img');
   expect(await page.evaluate(()=>window.injected)).toBeUndefined();
-  await expect(page.locator('.explain img')).toHaveCount(0);
+  await expect(page.locator('.full-explanations img')).toHaveCount(0);
 });
 test('Luas layer is opt-in and missing snapshots do not block walking',async({page})=>{
   await setup(page);

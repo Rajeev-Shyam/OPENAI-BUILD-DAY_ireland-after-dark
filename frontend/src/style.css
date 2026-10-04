@@ -105,7 +105,16 @@ button:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px soli
 .card.best_lit { animation-delay: .06s; }
 .card.balanced { animation-delay: .12s; }
 .card h3 { font-size: .8rem; margin: 14px 0 6px; }
-.card.selected { background: rgba(255,255,255,.055); }
+.card.selected { background: rgba(255,255,255,.055); outline: 2px solid var(--amber); outline-offset: 2px; }
+.view-route[aria-pressed="true"] { background: #3d341a; border-color: var(--amber); color: #f0ce93; font-weight: 700; }
+.evidence, .nearby-hospitals { margin: 12px 0; font-size: .8rem; line-height: 1.5; }
+.evidence summary, .nearby-hospitals summary { cursor: pointer; padding: 6px 0; font-weight: 600; }
+.quick-facts { padding-left: 18px; margin: 8px 0 12px; color: #b9c5c9; }
+.quick-facts li { margin-bottom: 7px; }
+.quick-facts strong, .muted strong { color: #edf0ef; font-weight: 700; }
+.source-details { border-top: 1px solid var(--border); padding-top: 6px; color: #b9c5c9; font-size: .75rem; }
+.source-details ul { padding-left: 18px; }
+.source-details li { margin-bottom: 8px; }
 .hospital-list { padding-left: 16px; font-size: .78rem; line-height: 1.5; }
 .hospital-list span { display: block; color: #9fb0b5; }
 .view-route { min-height: 38px; width: 100%; border: 1px solid var(--border); border-radius: 8px; background: transparent; color: #edf0ef; font-size: .8rem; }
