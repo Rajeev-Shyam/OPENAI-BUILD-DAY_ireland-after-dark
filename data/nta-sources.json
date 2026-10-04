@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "sources": {
+    "nta_gtfs_all": {
+      "url": "https://www.transportforireland.ie/transitData/Data/GTFS_All.zip",
+      "catalogue_url": "https://www.transportforireland.ie/transitData/PT_Data.html",
+      "filename": "nta_gtfs_all.zip",
+      "license": {
+        "id": "CC-BY-4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      },
+      "attribution": "National Transport Authority",
+      "coverage": "Published NTA all-operator feed; not a guarantee of complete island-wide coverage.",
+      "verified_on": "2026-10-04",
+      "refresh_policy": "Refresh before pairing with live updates; NTA says static IDs may change and updates may occur daily. HTTP freshness is not service-calendar validity."
+    },
+    "nta_gtfs_realtime": {
+      "url": "https://www.transportforireland.ie/transitData/Data/GTFS_Realtime.zip",
+      "catalogue_url": "https://www.transportforireland.ie/transitData/PT_Data.html",
+      "filename": "nta_gtfs_realtime.zip",
+      "license": {
+        "id": "CC-BY-4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      },
+      "attribution": "National Transport Authority",
+      "coverage": "Static timetable subset for NTA realtime operators, not realtime observations.",
+      "verified_on": "2026-10-04",
+      "refresh_policy": "Refresh before pairing with live updates; NTA says static IDs may change and updates may occur daily. HTTP freshness is not service-calendar validity."
+    },
+    "nta_gtfs_luas": {
+      "url": "https://www.transportforireland.ie/transitData/Data/GTFS_LUAS.zip",
+      "catalogue_url": "https://www.transportforireland.ie/transitData/PT_Data.html",
+      "filename": "nta_gtfs_luas.zip",
+      "license": {
+        "id": "CC-BY-4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      },
+      "attribution": "National Transport Authority",
+      "coverage": "Luas network only; small live-source validation feed.",
+      "verified_on": "2026-10-04",
+      "refresh_policy": "Refresh before pairing with live updates; NTA says static IDs may change and updates may occur daily. HTTP freshness is not service-calendar validity."
+    }
+  }
+}
