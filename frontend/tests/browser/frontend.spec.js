@@ -111,3 +111,15 @@ test('redesigned navigation, empty state and responsive planner',async ({page}) 
   await page.getByLabel('Origin place search').fill('Cork');
   await expect(page.locator('#results-empty')).toBeVisible();
 });
+
+test('baseline-only backend never claims a Night alternative',async ({page}) => {
+  await selectJourney(page);
+  await page.getByRole('combobox',{name:'Data mode',exact:true}).selectOption('api');
+  await page.route('**/route',route => route.fulfill({json:{...fixture('low'),comparison_status:'baseline_only'}}));
+  await page.getByRole('button',{name:'Compare routes'}).click();
+  await expect(page.getByRole('heading',{name:'Night route unavailable'})).toBeVisible();
+  await expect(page.locator('#status')).toContainText('Baseline only');
+  await expect(page.locator('#night-legend')).toHaveText('Night unavailable');
+  await expect(page.locator('.leaflet-overlay-pane path')).toHaveCount(2);
+  await expect(page.locator('#results')).toContainText('Unknown');
+});

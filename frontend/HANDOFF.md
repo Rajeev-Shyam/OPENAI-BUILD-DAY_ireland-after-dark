@@ -3,7 +3,57 @@
 4 October 2026. Sharing branch: `frontend`, created from the completed
 `codex/frontend` implementation at `81c1db8`, based on fetched
 `origin/docs/task-split` at `3f969b0`. The owner authorises pushing only `frontend`
-from now on. No merge into another branch is authorised.
+from now on. The owner subsequently authorised merging `backend-routing` into
+`frontend`; merge commit `796e590` incorporates routing commit `5987dfd` and its
+data-pipeline ancestry. No merge into main is authorised.
+
+## Routing integration — latest
+
+The branch now includes Person 1's engine and Person 2's pipeline. Neither included
+Person 4's HTTP API, so `frontend/dev_api.py` provides a local-only development
+bridge matching the proposed frontend shape. Backend routing/scoring/pipeline code
+is unchanged by this integration. The older backend-absent notes below describe
+the pre-merge checkout.
+
+The bridge accepts `POST /route`, validates coordinates/offset timestamps, reverses
+coordinates for the engine, converts units and allows frontend-origin CORS. It
+loads only the prebuilt Dublin cache and disables request-time network downloads.
+Unsupported locations include the actual cached bounds in the error. It has no
+journey logs, database, credentials or paid services.
+
+Important contract behavior:
+- Overall route score and its factors are not produced by the engine and stay unknown.
+- No evidence for either lighting or activity yields Low confidence and explicitly
+  labels the Night alternative unavailable. Partial evidence confidence stays unknown
+  until Person 4 implements the agreed calculation.
+- Activity is a normalized historical index over covered sections, not counts or safety.
+- The bundle covers one weekday/hour. Other selected times disable the engine's
+  activity preference and hide that metric. The UI explains this limitation.
+- Missing source content dates remain unknown; graph retrieval date is separately labelled.
+
+Verified so far: merged backend suite 95 tests and 5 subtests pass; bridge suite
+13 tests pass; frontend core 5 tests and browser 7 tests pass; production build passes.
+Real HTTP and browser integration passed against the cached OSM graph before a score
+bundle was loaded: valid 965.5 m / 12.4 min baseline route, null evidence/score,
+Low confidence, Night unavailable. Real unsupported-area and invalid-input responses
+passed. HTTP no-route handling is tested using an explicit test double, not claimed
+as a disconnected route observed in the downloaded graph.
+
+After loading the actual Sunday 20:00 bundle, real HTTP and browser checks returned
+distinct CHQ–Connolly routes: 965.5 m / 12.4 min / 64.5% recorded lighting coverage
+and 1007.8 m / 12.9 min / 89.8% coverage. Activity was unknown on that journey.
+A city-centre request returned identical valid routes with a historical normalized
+activity index of 0.882. An alternate departure hour correctly excluded activity.
+These are observed local snapshot results, not permanent route guarantees.
+
+Local data built successfully: 101,875 graph nodes / 267,580 edges; lighting evidence
+supports 39.073% of total graph length and footfall 0.324%. All downloads, graph,
+bundle, screenshots and .env.local remain ignored. Actual graph bounds are
+[-6.39, 53.29, -6.11, 53.41]; the bridge deliberately rejects outside-cache requests.
+
+Run commands and the current development-bridge boundary are in frontend/README.md.
+Next for Person 4: agree or replace this bridge with the application API, supplying
+the overall score/factors and confidence calculation without changing unknowns to zero.
 
 ## Visual refresh — 4 October 2026
 

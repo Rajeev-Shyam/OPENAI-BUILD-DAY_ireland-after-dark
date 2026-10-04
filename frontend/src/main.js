@@ -24,6 +24,7 @@ function invalidate() {
   byId('compare').disabled = false;
   byId('results').replaceChildren();
   byId('results-empty').hidden = false;
+  byId('night-legend').textContent = 'Night';
   routeLayer.clearLayers();
   coverageLayer.clearLayers();
   byId('coverage').textContent = unknownCoverage;
@@ -85,18 +86,19 @@ byId('mode').addEventListener('change', () => {
   invalidate();
   const mock = byId('mode').value === 'mock';
   byId('demo-banner').hidden = !mock; byId('scenario-label').hidden = !mock;
-  byId('mode-note').textContent = mock ? 'Demo uses a fixed illustrative Dublin journey, regardless of selected endpoints.' : 'Real API mode · provisional contract awaiting Person 4 agreement. No automatic demo fallback.';
+  byId('mode-note').textContent = mock ? 'Demo uses a fixed illustrative Dublin journey, regardless of selected endpoints.' : 'Real API mode · routing and evidence come from the configured backend. No automatic demo fallback.';
 });
 byId('fit').addEventListener('click', () => { if (routeLayer.getLayers().length) map.fitBounds(routeLayer.getBounds(),{padding:[25,25]}); else status('Compare routes first to show their extent.'); });
 function list(title, values, fallback) { const section = node('section'); section.append(node('h3',title)); const items = node('ul'); for (const text of values.length ? values : [fallback]) items.append(node('li',text)); section.append(items); return section; }
 function render(data, mock) {
   byId('results-empty').hidden = true;
+  byId('night-legend').textContent = data.comparison_status === 'baseline_only' ? 'Night unavailable' : 'Night';
   const bounds = data.coverage.bounds;
   byId('coverage').textContent = `${mock ? 'Synthetic demo' : 'Backend-supported'} bounds: ${bounds ? bounds.join(', ') + ' (west, south, east, north)' : 'unknown'}. ${data.coverage.description}`;
   if (bounds) L.rectangle([[bounds[1],bounds[0]],[bounds[3],bounds[2]]],{color:'#526469',weight:2,dashArray:'4 6',fill:false,interactive:false}).addTo(coverageLayer);
   for (const route of data.routes) {
-    const night = route.kind === 'night'; const title = night ? 'Night route' : 'Fastest route';
-    L.polyline(route.geometry.coordinates.map(toLeaflet),{color:night ? '#ba7100' : '#375cb5',weight:night ? 4 : 8,dashArray:night ? '9 8' : undefined}).bindTooltip(node('span',title)).addTo(routeLayer);
+    const night = route.kind === 'night'; const title = night ? (data.comparison_status === 'baseline_only' ? 'Night route unavailable' : 'Night route') : 'Fastest route';
+    if (!(night && data.comparison_status === 'baseline_only')) L.polyline(route.geometry.coordinates.map(toLeaflet),{color:night ? '#ba7100' : '#375cb5',weight:night ? 4 : 8,dashArray:night ? '9 8' : undefined}).bindTooltip(node('span',title)).addTo(routeLayer);
     const card = node('article',undefined,`card ${route.kind}-card`); card.append(node('h2',title));
     if (mock) card.append(node('p','Synthetic fixture · not calculated for your endpoints','muted'));
     card.append(node('p',`Data Confidence: ${route.confidence ?? 'Unknown'}`,'badge'));
@@ -117,7 +119,7 @@ function render(data, mock) {
     byId('results').append(card);
   }
   const identical = JSON.stringify(data.routes[0].geometry) === JSON.stringify(data.routes[1].geometry);
-  status(identical ? 'Both options follow the same route. This is a valid result.' : 'Two walking routes returned. Use Show routes to adjust the map.');
+  status(data.comparison_status === 'baseline_only' ? 'Baseline only: showing the fastest path. No evidence-based Night alternative is available.' : identical ? 'Both options follow the same route. This is a valid result.' : 'Two walking routes returned. Use Show routes to adjust the map.');
 }
 byId('compare').addEventListener('click', async () => {
   invalidate();

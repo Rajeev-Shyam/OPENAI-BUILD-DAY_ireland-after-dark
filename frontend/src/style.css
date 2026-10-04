@@ -132,7 +132,7 @@ h1 span { color: var(--amber); }
 .card dd { font-weight: 650; overflow-wrap: anywhere; text-align: right; }
 .card h3 { font-size: .93rem; margin: 24px 0 12px; }
 .card ul { padding-left: 18px; font-size: .8rem; color: #c0cace; }
-.card li { padding-left: 3px; margin-bottom: 9px; }
+.card li { padding-left: 3px; margin-bottom: 9px; overflow-wrap: anywhere; }
 .card li::marker { color: var(--amber); }
 .understanding { padding: 74px 0 60px; }
 .principles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 30px; }

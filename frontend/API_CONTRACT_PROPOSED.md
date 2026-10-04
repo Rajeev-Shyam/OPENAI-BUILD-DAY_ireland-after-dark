@@ -1,6 +1,10 @@
 # PROPOSED POST /route contract
 
-Awaiting Person 4 agreement. No backend compatibility has been established.
+Awaiting Person 4 agreement. Compatibility with Person 4's API is not established.
+The frontend-owned `dev_api.py` bridge now implements this shape against the merged
+routing engine for local testing. This does not establish agreement with Person 4's
+future application API. The original absence statement below describes the task-split
+starting point, not the current merged checkout.
 There is no docs/api-contract.md on the fetched task-split branch. This proposal
 lives under frontend/ to preserve the existing personal docs exclusions.
 
@@ -25,6 +29,9 @@ Top-level fields:
   Bounds describe the actual routing graph extent, not lighting coverage or a promise
   that every point connects. Null means unknown. Description must explain limitations.
 - `routes`: exactly two entries, one `kind: "fastest"`, one `kind: "night"`.
+- Optional `comparison_status`: engine status (`ok`, `same_route`, `no_alternative`,
+  `baseline_only`). For `baseline_only` the UI explicitly labels Night unavailable;
+  the repeated fastest path is not presented as a preference-derived alternative.
 
 Each route:
 - `geometry`: GeoJSON LineString; at least two finite [longitude, latitude] points.
@@ -55,3 +62,21 @@ All API access and validation are in src/api.js. Base URL is VITE_API_BASE_URL;
 empty means same origin. Person 4 must provide CORS for the frontend origin when
 running on a separate port. No credentials are included. Timeout is 15 seconds;
 errors never activate fixtures. API must not include secrets or internal stack traces.
+
+## Local development bridge semantics
+
+- Coordinates are explicitly reversed only at the engine boundary: HTTP [lon, lat]
+  becomes engine (lat, lon); returned geometry already uses GeoJSON order.
+- `duration_min` is converted to seconds; lighting evidence fraction to percent.
+- Activity is labelled a normalized 0–1 index over covered portions, never a raw
+  count or an overall route score. Coverage fractions and bundle time slice appear
+  in limitations. Snapshot source timezone interpretation remains unverified.
+- A different requested weekday/hour disables the engine's busier preference and
+  hides the activity metric. Lighting can still inform routing. The bridge does not
+  rebuild or invent time slices on requests.
+- Overall score and factor breakdown remain null/empty. Confidence is null pending
+  Person 4, except the explicit no-evidence case: both lighting/activity unavailable
+  yields Low. There is no intermediate confidence formula or location heuristic.
+- Only a prebuilt cached graph is served, with downloads disabled during requests.
+- Source content dates absent from pipeline provenance remain null; graph fetch date
+  is separately labelled as retrieval information, not source content date.
