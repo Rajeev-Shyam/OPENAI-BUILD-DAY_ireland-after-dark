@@ -13,3 +13,11 @@ data/processed
 .cache
 .env
 .env.*
+local-project
+AGENTS.md
+PROJECT_CONTEXT.md
+TODO.md
+HANDOFF.md
+frontend/.cache
+frontend/dist
+frontend/test-results

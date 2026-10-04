@@ -97,6 +97,26 @@ def test_atomic_writer_refuses_nonfinite_values_without_replacing_file(tmp_path)
     assert output.read_text() == "old"
 
 
+def test_short_edges_allow_platform_roundoff_but_reject_changed_lengths(raw_sources, tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from data.pipeline import build as module
+    document = json.loads(EXAMPLE.read_text())
+    document['features'] = [document['features'][0]]
+    coords = document['features'][0]['geometry']['coordinates']
+    coords[:] = [coords[0], [coords[0][0] + 0.00000001, coords[0][1]]]
+    edges = tmp_path / 'tiny.geojson'
+    edges.write_text(json.dumps(document))
+    bundle = build_bundle(edges, raw_sources, weekday=3, hour=0)
+    output = tmp_path / 'scores.json'
+    atomic_json(output, bundle)
+    project = module.metric_geometry
+    monkeypatch.setattr(module, 'metric_geometry', lambda geometry: SimpleNamespace(length=project(geometry).length + 2.3e-9))
+    assert load_scores(output, edges, weekday=3, hour=0)
+    monkeypatch.setattr(module, 'metric_geometry', lambda geometry: SimpleNamespace(length=project(geometry).length + 1e-4))
+    with pytest.raises(ValueError, match='Edge length'):
+        load_scores(output, edges, weekday=3, hour=0)
+
+
 def test_missing_time_profile_remains_unknown(raw_sources):
     bundle = build_bundle(EXAMPLE, raw_sources, weekday=3, hour=1)
     assert bundle["edges"][0]["lighting_score"] is not None
