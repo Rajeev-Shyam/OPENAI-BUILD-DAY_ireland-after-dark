@@ -1,2 +1,0 @@
--r ../requirements.txt
-tzdata==2026.5

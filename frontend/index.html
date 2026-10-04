@@ -15,16 +15,14 @@
     <span>Ireland <b>After Dark</b></span>
   </header>
 
-  <section class="panel" id="panel" aria-label="Route planner">
-    <p id="hint" class="hint">Click the map to set your <b>start</b>.</p>
-    <div id="pins" class="pins" hidden>
-      <span id="pin-origin" class="pin"></span>
-      <span id="pin-destination" class="pin"></span>
-    </div>
-    <button id="compare" type="button" disabled>Compare routes</button>
-    <button id="reset" type="button" class="link" hidden>Choose different points</button>
+  <form class="panel" id="panel" aria-label="Route planner">
+    <label for="origin-input">Start</label>
+    <input id="origin-input" type="text" placeholder="Address, place or Eircode" autocomplete="off">
+    <label for="destination-input">Destination</label>
+    <input id="destination-input" type="text" placeholder="Address, place or Eircode" autocomplete="off">
+    <button id="compare" type="submit">Find route</button>
     <p id="status" role="status" aria-live="polite"></p>
-  </section>
+  </form>
 
   <section id="sheet" class="sheet" aria-label="Route comparison" hidden>
     <div class="sheet-handle"></div>

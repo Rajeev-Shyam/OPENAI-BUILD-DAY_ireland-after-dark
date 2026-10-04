@@ -6,20 +6,13 @@ import { dublinNow, departurePayload } from './time.js';
 
 const byId = id => document.getElementById(id);
 
-const map = new LeafletMap('map').setView([53.4, -8], 7);
+const map = new LeafletMap('map').setView([53.35, -6.26], 12);
 tileLayer(import.meta.env.VITE_TILE_URL || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19,
   attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
 }).addTo(map);
 const routeLayer = featureGroup().addTo(map);
-
-const endpoints = { origin: null, destination: null };
 const markers = {};
-let controller;
-
-function pinIcon(label) {
-  return divIcon({ className: 'endpoint-icon', html: label, iconSize: [26, 26] });
-}
 
 function status(message, isError = false) {
   const el = byId('status');
@@ -27,45 +20,24 @@ function status(message, isError = false) {
   el.className = isError ? 'error' : '';
 }
 
-function setHint() {
-  if (!endpoints.origin) byId('hint').innerHTML = 'Click the map to set your <b>start</b>.';
-  else if (!endpoints.destination) byId('hint').innerHTML = 'Now click the map to set your <b>destination</b>.';
-  else byId('hint').innerHTML = 'Ready — press <b>Compare routes</b>.';
+// Single lookup per submit (not autocomplete-as-you-type), biased to Ireland.
+// See https://operations.osmfoundation.org/policies/nominatim/.
+async function geocode(query, signal) {
+  const url = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=ie&limit=1&q=${encodeURIComponent(query)}`;
+  const response = await fetch(url, { signal, headers: { Accept: 'application/json' } });
+  if (!response.ok) throw new Error('Place search is unavailable right now.');
+  const [match] = await response.json();
+  if (!match) throw new Error(`Could not find "${query}" in Ireland.`);
+  return [Number(match.lon), Number(match.lat)];
 }
 
-function reset() {
-  endpoints.origin = null;
-  endpoints.destination = null;
-  markers.origin?.remove();
-  markers.destination?.remove();
-  routeLayer.clearLayers();
-  byId('pins').hidden = true;
-  byId('reset').hidden = true;
-  byId('compare').disabled = true;
-  byId('sheet').hidden = true;
-  status('');
-  setHint();
-}
-
-function placePoint(kind, point) {
-  endpoints[kind] = point;
+function placePin(kind, point, label) {
   markers[kind]?.remove();
-  markers[kind] = marker(toLeaflet(point), { icon: pinIcon(kind === 'origin' ? 'A' : 'B') }).addTo(map);
-  if (endpoints.origin && endpoints.destination) {
-    byId('pins').hidden = false;
-    byId('reset').hidden = false;
-    byId('compare').disabled = false;
-  }
-  setHint();
+  markers[kind] = marker(toLeaflet(point), {
+    icon: divIcon({ className: 'endpoint-icon', html: kind === 'origin' ? 'A' : 'B', iconSize: [26, 26] }),
+    title: label,
+  }).addTo(map);
 }
-
-map.on('click', event => {
-  if (endpoints.origin && endpoints.destination) return;
-  placePoint(endpoints.origin ? 'destination' : 'origin', [event.latlng.lng, event.latlng.lat]);
-});
-
-byId('reset').addEventListener('click', reset);
-byId('sheet-close').addEventListener('click', () => { byId('sheet').hidden = true; });
 
 function confidenceClass(confidence) {
   return confidence === 'High' ? 'high' : confidence === 'Medium' ? 'medium' : 'low';
@@ -110,29 +82,38 @@ function render(data) {
   status('');
 }
 
-byId('compare').addEventListener('click', async () => {
+let controller;
+byId('panel').addEventListener('submit', async event => {
+  event.preventDefault();
   controller?.abort();
   controller = new AbortController();
-  const payload = {
-    origin: endpoints.origin,
-    destination: endpoints.destination,
-    ...departurePayload(dublinNow(), 'earlier'),
-  };
+  const originQuery = byId('origin-input').value.trim();
+  const destinationQuery = byId('destination-input').value.trim();
+  if (!originQuery || !destinationQuery) { status('Enter both a start and a destination.', true); return; }
+
   byId('compare').disabled = true;
   byId('sheet').hidden = true;
-  status('Finding walking routes…');
+  status('Finding start and destination…');
   try {
+    const [origin, destination] = await Promise.all([
+      geocode(originQuery, controller.signal),
+      geocode(destinationQuery, controller.signal),
+    ]);
+    placePin('origin', origin, originQuery);
+    placePin('destination', destination, destinationQuery);
+
+    status('Finding walking routes…');
+    const payload = { origin, destination, ...departurePayload(dublinNow(), 'earlier') };
     const data = await getRoutes(payload, {
-      mode: 'api',
       baseUrl: import.meta.env.VITE_API_BASE_URL || '',
       signal: controller.signal,
     });
     render(data);
   } catch (error) {
-    status(`${error.code || 'REQUEST_ERROR'}: ${error.message}`, true);
+    if (error.name !== 'AbortError') status(`${error.code || 'ERROR'}: ${error.message}`, true);
   } finally {
     byId('compare').disabled = false;
   }
 });
 
-setHint();
+byId('sheet-close').addEventListener('click', () => { byId('sheet').hidden = true; });

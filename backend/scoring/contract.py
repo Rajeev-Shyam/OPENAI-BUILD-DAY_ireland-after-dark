@@ -8,7 +8,7 @@ from . import route_score
 from .explanation import build_explanations, build_limitations
 
 # Dated to the actual resource content, not the download date.
-# See docs/data-sources.md for the full audit.
+# Dublin City Council via Smart Dublin, CC BY 4.0.
 SOURCES = [
     {
         "name": "DCC Public Lighting",

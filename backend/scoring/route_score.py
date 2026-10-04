@@ -1,7 +1,7 @@
 """Route Score and Data Confidence. Deterministic: no AI, no invented numbers.
 
 A factor with no recorded evidence is left out of the average — it is never
-scored as zero. See docs/api-contract.md for the wording rules this follows.
+scored as zero.
 """
 
 

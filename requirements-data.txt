@@ -1,6 +1,0 @@
-# Versions exercised by the data pipeline; Python >=3.9.
-shapely==2.0.7
-pyproj==3.6.1
-pytest==8.4.2
-gtfs-realtime-bindings==1.0.0
-protobuf==6.33.6
