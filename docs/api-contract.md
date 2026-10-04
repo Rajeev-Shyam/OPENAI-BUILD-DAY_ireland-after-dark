@@ -11,8 +11,10 @@ Request: `origin` and `destination` are `[longitude, latitude]`. Optional
 
 Response: `mode: walking`, `coverage`, `comparison_status`, `route_options_note`,
 `activity_enabled`, `departure_time`, `hospital_context`, and `routes`.
-Routes contain one to three distinct candidates: `fastest`, optionally `night`,
-and `alternative1` / `alternative2`. The search is bounded, not an exhaustive
+Routes contain one to three distinct candidates: `fastest`, optional team
+profiles `best_lit` / `balanced`, then `alternative1` / `alternative2` if needed.
+The legacy `night` kind is still accepted. Profiles use different real routing
+preferences; near-identical profile results count as one. The search is bounded, not an exhaustive
 ranking. Alternatives stay within five extra estimated walking minutes.
 
 Each route supplies GeoJSON LineString geometry, `distance_m`, `duration_s`,

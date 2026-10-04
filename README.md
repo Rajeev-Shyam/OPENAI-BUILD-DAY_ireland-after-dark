@@ -133,7 +133,7 @@ if you add that service back) or an Atlas connection string.
 
 ## Integration checks (4 October 2026)
 
-331 Python tests plus 10 subtests, four Node tests, six Edge browser tests and a
+333 Python tests plus 10 subtests, four Node tests, six Edge browser tests and a
 production build passed during integration. Real local API/browser checks also
 returned three distinct Dublin routes with hospital proximity, loaded Luas stops,
 and exercised unsupported/identical-endpoint errors. Docker build/start and the same real browser flow passed with the mounted Windows-built datasets. Public tiles were blocked in automated tests; physical-device checks were not run.

@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from dataclasses import replace
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -18,6 +19,12 @@ from .geocoding import PlaceQuery, search
 from .transport import stops, realtime_status
 from .hospitals import attach_hospitals
 from backend.routing.alternatives import add_alternatives
+
+# Team profiles are real engine preferences, not renamed copies of a route.
+ALTERNATIVE_PROFILES = [
+    ('best_lit', Preferences(well_lit=1.0, busier=0.2, crossings=0.5)),
+    ('balanced', Preferences(well_lit=0.6, busier=0.6, crossings=0.6)),
+]
 
 
 @asynccontextmanager
@@ -119,15 +126,26 @@ def route(payload: RouteRequest) -> dict:
     time_slice = store.bundle.time_slice
     activity_enabled = bool(time_slice and departure_slot(payload.departure_time) ==
                             (time_slice['weekday'], time_slice['hour']))
-    prefs = Preferences(busier=0.5 if activity_enabled else 0.0)
-    result = engine.route(origin, destination, prefs)
+    named = []
+    for kind, profile in ALTERNATIVE_PROFILES:
+        prefs = profile if activity_enabled else replace(profile, busier=0.0)
+        profile_result = engine.route(origin, destination, prefs)
+        named.append({'kind': kind, 'route': profile_result['night'],
+                      'status': profile_result['status'], 'detour': profile_result['detour']})
+        if len(named) == 1:
+            result = profile_result
+    result['named_alternatives'] = named
     result = add_alternatives(engine, result, prefs)
+    candidates = [result['fastest'], result['night'], *[item['route'] for item in named],
+                  *result.get('alternatives', [])]
     if not activity_enabled:
-        for candidate in [result['fastest'], result['night'], *result.get('alternatives', [])]:
+        for candidate in candidates:
             candidate['activity'] = {'score': None, 'coverage': 0.0}
     if all(candidate['lighting']['score'] is None and candidate['activity']['score'] is None
-           for candidate in [result['fastest'], result['night'], *result.get('alternatives', [])]):
+           for candidate in candidates):
         result['status'] = 'baseline_only'
+        for item in named:
+            item['status'] = 'baseline_only'
     result["area"] = area
     result["time_slice"] = store.bundle.time_slice
 

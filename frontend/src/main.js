@@ -16,7 +16,13 @@ tileLayer(import.meta.env.VITE_TILE_URL || 'https://tile.openstreetmap.org/{z}/{
 }).addTo(map);
 const routeLayer = featureGroup().addTo(map);
 const hospitalLayer = featureGroup().addTo(map);
-const routeColours = {fastest:'#3975ff',night:'#f5be53',alternative1:'#ad8dff',alternative2:'#6dd6b0'};
+const routeColours = {fastest:'#3975ff',night:'#f5be53',best_lit:'#f5be53',balanced:'#b57bff',alternative1:'#6dd6b0',alternative2:'#f58dc0'};
+const routeTitles = {fastest:'Fastest route',night:'Night route',best_lit:'Best lit route',balanced:'Balanced route',alternative1:'Alternative route',alternative2:'Alternative route 2'};
+
+function recommendedKind(routes) {
+  const candidates = routes.filter(route => route.kind !== 'fastest' && Number.isFinite(route.score));
+  return candidates.length ? candidates.reduce((best, route) => route.score > best.score ? route : best).kind : null;
+}
 const markers = {};
 
 function status(message, isError = false) {
@@ -63,9 +69,8 @@ function factorBar(factor) {
     </div>`;
 }
 
-function routeCard(route) {
-  const night = route.kind === 'night';
-  const title = route.kind === 'fastest' ? 'Fastest route' : night ? 'Night route' : 'Alternative route';
+function routeCard(route, isRecommended = false) {
+  const title = routeTitles[route.kind];
   const minutes = (route.duration_s / 60).toFixed(0);
   const km = (route.distance_m / 1000).toFixed(2);
   const confidence = route.confidence ?? 'Unknown';
@@ -81,7 +86,7 @@ function routeCard(route) {
 
   return `
     <article class="card ${route.kind}" style="border-top-color:${routeColours[route.kind]}">
-      <h2>${title}</h2>
+      <h2>${title}${isRecommended ? '<span class="recommended" title="Highest recorded evidence score among the non-fastest options; not a safety rating">Recommended</span>' : ''}</h2>
       <div class="stat-row">
         <div class="stat"><b>${minutes}</b><span>min</span></div>
         <div class="stat"><b>${km}</b><span>km</span></div>
@@ -116,13 +121,13 @@ function render(data) {
     }
   }
   for (const [index, route] of routes.entries()) {
-    const night = route.kind === 'night';
+    const night = route.kind === 'night' || route.kind === 'best_lit';
     lines[route.kind] = polyline(paths[index], {
       color: routeColours[route.kind],
       className: night ? 'route-line-night' : route.kind === 'fastest' ? 'route-line-fastest' : 'route-line-alternative',
       weight: night ? 6 : 8,
       opacity: 1,
-      dashArray: night ? '12 12' : undefined,
+      dashArray: night ? '12 12' : route.kind === 'fastest' ? undefined : '2 10',
       interactive: false,
     }).addTo(routeLayer);
   }
@@ -132,7 +137,8 @@ function render(data) {
   if (routeLayer.getLayers().length) map.fitBounds(routeLayer.getBounds(), padding());
 
   byId('sheet-intro').textContent = `${data.routes.length} walking option${data.routes.length === 1 ? '' : 's'} found, within the five-minute detour limit. ${data.routes.length < 3 ? 'Fewer than three distinct candidates were found. ' : ''}Recorded lighting and historical activity are not a safety guarantee. ${data.hospital_context?.attribution ? `${data.hospital_context.attribution}; hospitals fetched ${data.hospital_context.fetched_at_utc.slice(0,10)}.` : ''}`;
-  byId('sheet-body').innerHTML = data.routes.map(routeCard).join('');
+  const recommended = recommendedKind(data.routes);
+  byId('sheet-body').innerHTML = data.routes.map(route => routeCard(route, route.kind === recommended)).join('');
   for (const button of byId('sheet-body').querySelectorAll('.view-route')) {
     button.addEventListener('click', () => {
       const route = data.routes.find(r=>r.kind===button.dataset.route);

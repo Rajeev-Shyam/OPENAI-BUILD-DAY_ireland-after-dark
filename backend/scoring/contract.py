@@ -72,9 +72,15 @@ def _route_payload(kind: str, route: dict, status: str, detour: dict, time_slice
     }
 
 
-def build_route_response(area: str, bbox: tuple[float, float, float, float] | None, engine_result: dict) -> dict:
+def build_route_response(area: str, bbox: tuple[float, float, float, float] | None,
+                         engine_result: dict, time_slice=None, alternatives=None) -> dict:
     """engine_result is backend.routing.get_route()'s return value, plus the
     area's bbox (left, bottom, right, top) from the GraphStore."""
+    if alternatives is not None:
+        # Also accept the team's named-profile contract directly.
+        engine_result = {'fastest': engine_result, 'night': engine_result,
+                         'status': alternatives[0]['status'] if alternatives else 'baseline_only',
+                         'detour': None, 'time_slice': time_slice, 'named_alternatives': alternatives}
     fastest = engine_result["fastest"]
     night = engine_result["night"]
     status = engine_result["status"]
@@ -84,12 +90,18 @@ def build_route_response(area: str, bbox: tuple[float, float, float, float] | No
 
     routes = [_route_payload("fastest", fastest, status, detour, time_slice, siblings)]
     seen = [fastest]
-    for kind, candidate in [
-            ('night',night), *[(f'alternative{i+1}',r) for i,r in enumerate(engine_result.get('alternatives',[]))]]:
+    candidates = engine_result.get('named_alternatives', [
+        {'kind': 'night', 'route': night, 'status': status, 'detour': detour}])
+    candidates = [*candidates, *[{'kind': f'alternative{i+1}', 'route': r,
+                                 'status': status, 'detour': detour}
+                                for i,r in enumerate(engine_result.get('alternatives', []))]]
+    for candidate_info in candidates:
+        kind, candidate = candidate_info['kind'], candidate_info['route']
         if len(routes)>=3 or any(same_corridor(candidate, previous) for previous in seen):
             continue
         seen.append(candidate)
-        item=_route_payload(kind,candidate,status,detour,time_slice,siblings)
+        item=_route_payload(kind,candidate,candidate_info['status'],candidate_info['detour'],
+                            time_slice,{'fastest': fastest, 'night': candidate})
         if kind.startswith('alternative'):
             extra=max(0,candidate['duration_min']-fastest['duration_min'])
             item['explanations']=[f'Distinct walking alternative, about {extra:.1f} minutes longer than the fastest route.']

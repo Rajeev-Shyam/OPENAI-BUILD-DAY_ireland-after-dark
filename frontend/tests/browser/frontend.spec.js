@@ -10,7 +10,8 @@ async function setup(page, scenario='normal') {
 }
 test('phase1 cards show factors, caveats, and clear stale results on edit',async({page})=>{
   await setup(page);await page.getByRole('button',{name:'Find route'}).click();
-  await expect(page.getByRole('heading',{name:'Night route',exact:true})).toBeVisible();
+  await expect(page.getByRole('heading',{name:/Night route/})).toBeVisible();
+  await expect(page.locator('.recommended')).toHaveCount(1);
   await expect(page.locator('.factor-label').first()).toContainText('Recorded lighting');
   await page.getByText('Evidence and limitations',{exact:true}).first().click();
   await expect(page.locator('details.evidence').first()).toContainText('Synthetic example');

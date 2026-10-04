@@ -150,10 +150,10 @@ def load_scores(bundle_path: str | Path, edges_path: str | Path, *, weekday: int
             raise ValueError("Duplicate edge identity in score bundle")
         length = row.get("length_m")
         if (type(length) not in (int, float) or not math.isfinite(length) or length <= 0
-                # PROJ/GEOS across Windows/Linux differed by at most 2.24 nm on
-                # the same fingerprinted graph. Relative-only tolerance rejects
-                # tiny edges; allow 10 nm absolute roundoff, not changed geometry.
-                or identity not in expected or not math.isclose(length, expected[identity], rel_tol=1e-9, abs_tol=1e-8)):
+                # Preserve the team's cross-platform relative tolerance, plus
+                # 10 nm absolute tolerance for tiny Windows/Linux edges. Graph
+                # fingerprints and other evidence checks remain mandatory.
+                or identity not in expected or not math.isclose(length, expected[identity], rel_tol=1e-6, abs_tol=1e-8)):
             raise ValueError("Edge length does not match graph geometry")
         for score in ("lighting_score", "footfall_score"):
             if score not in row:

@@ -33,7 +33,7 @@ def test_departure_controls_ranking_and_presentation(client, monkeypatch, depart
     assert response.status_code == 200
     body = response.json()
     assert body['activity_enabled'] is enabled
-    assert engine.route.call_args.args[2].busier == (0.5 if enabled else 0)
+    assert [call.args[2].busier for call in engine.route.call_args_list] == ([0.2, 0.6] if enabled else [0, 0])
     assert (body['routes'][0]['historical_activity'] is not None) is enabled
     assert body['routes'][0]['lighting_coverage_pct'] == 90
     assert response.headers['cache-control'] == 'no-store'

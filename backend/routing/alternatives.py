@@ -11,10 +11,11 @@ from .diversity import same_corridor
 
 
 def add_alternatives(engine, result, prefs, limit=3):
-    routes = [result['fastest'], result['night']]
+    routes = [result['fastest'], *[item['route'] for item in result['named_alternatives']]] if 'named_alternatives' in result else [result['fastest'], result['night']]
     distinct = [routes[0]]
-    if not same_corridor(*routes):
-        distinct.append(routes[1])
+    for candidate in routes[1:]:
+        if not any(same_corridor(candidate, previous) for previous in distinct):
+            distinct.append(candidate)
     def edge_set(route):
         return {frozenset((s['u'],s['v'])) for s in route['segments']}
     used = set().union(*(edge_set(route) for route in routes))

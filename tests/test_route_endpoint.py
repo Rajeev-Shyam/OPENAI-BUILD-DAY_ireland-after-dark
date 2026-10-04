@@ -15,7 +15,7 @@ def client():
         yield test_client
 
 
-def test_route_returns_fastest_and_night_for_a_real_dublin_corridor(client):
+def test_route_returns_distinct_profiles_for_a_real_dublin_corridor(client):
     response = client.post(
         "/route",
         json={
@@ -32,6 +32,9 @@ def test_route_returns_fastest_and_night_for_a_real_dublin_corridor(client):
     assert 1 <= len(body['routes']) <= 3
     assert body['routes'][0]['kind'] == 'fastest'
     assert len({str(r['geometry']) for r in body['routes']}) == len(body['routes'])
+    from itertools import combinations
+    from backend.routing.diversity import same_corridor
+    assert all(not same_corridor(a, b) for a, b in combinations(body['routes'], 2))
     for route in body["routes"]:
         assert route["distance_m"] > 0
         assert route["duration_s"] > 0

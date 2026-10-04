@@ -10,7 +10,7 @@ export function validateResponse(data) {
   const bounds = data.coverage.bounds;
   if (bounds !== null && (!Array.isArray(bounds) || bounds.length !== 4 || !isCoordinate(bounds.slice(0,2)) || !isCoordinate(bounds.slice(2)) || bounds[0] >= bounds[2] || bounds[1] >= bounds[3])) fail();
   for (const route of data.routes) {
-    if (!['fastest','night','alternative1','alternative2'].includes(route.kind)) fail();
+    if (!['fastest','night','best_lit','balanced','alternative1','alternative2'].includes(route.kind)) fail();
     if (!route || route.geometry?.type !== 'LineString' || !Array.isArray(route.geometry.coordinates) || route.geometry.coordinates.length < 2 || !route.geometry.coordinates.every(isCoordinate)) fail();
     if (!Number.isFinite(route.distance_m) || route.distance_m < 0 || !Number.isFinite(route.duration_s) || route.duration_s < 0 || !optionalNumber(route.lighting_coverage_pct,100) || !optionalNumber(route.score,100)) fail();
     if (!['Low','Medium','High',null].includes(route.confidence)) fail();
