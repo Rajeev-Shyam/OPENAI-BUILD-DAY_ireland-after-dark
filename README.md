@@ -1,174 +1,120 @@
 # Ireland After Dark
 
-A Build for Ireland prototype exploring walking-route choices after dark. Routing works anywhere in Ireland via OpenStreetMap; lighting/footfall/SCATS coverage is Dublin-only today, so routes outside Dublin get an honest Low data-confidence badge.
+Compares a Fastest route and a Night route for walking in Ireland. The Night
+route favours streets with recorded lighting and historical footfall. It is
+not a safety score. It does not use crime data. Missing data shows as
+unknown, never as zero.
 
-**Status: FastAPI + MongoDB backend skeleton is running. Person 1's routing engine (`backend/routing/`) and Person 2's data pipeline (`data/pipeline/`) are merged in. Wiring them together behind `POST /route`, plus the frontend, is in progress.**
+Lighting and footfall data only cover Dublin right now. Outside Dublin the
+app still routes (OpenStreetMap covers all of Ireland) but confidence is
+always Low because there is no lighting or footfall evidence to use.
 
-## Status by person (`phase1` branch, 4 Oct 2026)
-
-Pulled from each branch's own handoff doc, not guessed — see the linked doc per
-row for full evidence. ✅ done and verified · ⚠️ partially done / blocked · ❌ not started.
-
-### Person 1 — Routing engine (`backend/routing/`)
-
-| Task | Status |
-|---|---|
-| OSM walking network pull (Dublin cached, other areas on-demand) | ✅ |
-| Graph build + disk cache | ✅ |
-| Snap origin/destination to nearest node | ✅ |
-| Fastest route (Dijkstra) | ✅ |
-| NightCost edge weights + Night Route | ✅ |
-| Return geometry, minutes, metres | ✅ |
-| P1: preference weights (well-lit, busier, crossings, less walking) | ✅ |
-| P1: crossing penalties | ⚠️ formula exists; no effect yet — data pipeline doesn't supply the `crossing` field |
-| P1: performance pass | ❌ not verified |
-| P2: route deviation check | ❌ |
-| **Wired into `backend/api`'s `POST /route`** | ❌ **next integration step** |
-
-Details: [`backend/routing/README.md`](backend/routing/README.md)
-
-### Person 2 — Data pipeline (`data/pipeline/`)
-
-| Task | Status |
-|---|---|
-| Download scripts (lighting, footfall, counter locations — pinned & hashed) | ✅ |
-| Street-light cleaning, edge matching, lighting density | ✅ |
-| Footfall cleaning, weekday/hour averaging, edge matching | ✅ code exists; thin coverage (34 counters, city-centre only) |
-| Per-edge score export + per-source coverage flags (nullable, not zero) | ✅ |
-| P1: SCATS signals + OSM crossings | ❌ |
-| P1: Garda/fire/hospital points layer | ❌ |
-| P1: RSA collisions | ❌ |
-| P2: CSO crime context | ❌ |
-| Integration against Person 1's real Dublin graph | ⚠️ tested only against a synthetic fixture graph so far |
-
-Details: [`docs/data-validation.md`](docs/data-validation.md)
-
-### Person 3 — Frontend (`frontend/`)
-
-| Task | Status |
-|---|---|
-| Map of Ireland (Leaflet) | ✅ |
-| Origin/destination input (local directory search + map click + coordinates) | ✅ no live geocoder — deliberate, per Nominatim policy |
-| Time/day picker (Europe/Dublin, DST-aware) | ✅ |
-| Fastest/Night routes in distinct colours + comparison card + explanation list + score/confidence UI | ✅ |
-| Built against mock/demo fixtures, with a Real API switch | ✅ switch exists; real side unverified |
-| Loading / error / no-route / unsupported-area states | ✅ |
-| P1: preference sliders | ❌ |
-| P1: mobile layout | ✅ |
-| P1: nearby-help locations layer | ❌ |
-| P1: accessibility pass | ✅ basics in (keyboard, focus, labels); no screen-reader pass yet |
-| **Real backend integration end to end** | ❌ **not verified — the blocker** |
-
-Details: [`frontend/HANDOFF.md`](frontend/HANDOFF.md)
-
-### Person 4 — API, scoring, pitch (`backend/api/`, `backend/scoring/`, docs)
-
-| Task | Status |
-|---|---|
-| FastAPI app skeleton + MongoDB connection + `/health` | ✅ |
-| `POST /route` matching the contract | ❌ |
-| Route Score / Data Confidence calculation | ❌ |
-| Explanation generator | ❌ |
-| Input validation + error responses | ❌ |
-| Unit tests for score, confidence, explanations | ❌ |
-| Demo script with a fixed Dublin route | ❌ |
-| Pitch and limitations slide | ❌ |
-
-Details: [`docs/ACCEPTANCE_CHECKLIST.md`](docs/ACCEPTANCE_CHECKLIST.md) (every check currently **NOT RUN**).
-
-**Next piece of work:** wire Person 1's `get_route()` and Person 2's edge-score
-bundle into `POST /route`, then point Person 3's frontend at it with the Real
-API switch — that one path closes the loop for everyone.
-
-## NTA public transport data
-
-The [NTA handoff guide](docs/transport-data-contract.md) covers static GTFS downloads,
-SQLite timetable processing, stop GeoJSON, authenticated realtime snapshots and
-static/realtime identifier audits. [Validation status](docs/nta-validation.md)
-records real static-feed checks and successful authenticated realtime fetches,
-including stale observations and unresolved timetable references. This addition prepares data for the transport team; it does not provide
-multimodal routing or waiting-time recommendations.
-
-## Proposed first demo
-
-Compare the shortest walking route with an alternative favouring proximity to recorded public lighting assets, within a user's acceptable detour. Show both paths, calculated distance, estimated time, source dates and missing information.
-
-This supports informed preferences. It does not predict crime, certify working lamps or guarantee a safe journey. Pub/nightclub avoidance can be an optional preference, not a danger classifier.
-
-Start with one small area. CHQ to Connolly Station is a proposed corridor, subject to verifying valid pedestrian paths and meaningful alternatives.
-
-## Start collaborating
-
-Agree roles and scope using [the brief](docs/PROJECT_BRIEF.md) and [the task split](docs/TASKS.md). Read [the verified data notes](docs/data-sources.md) before coding ([earlier notes](docs/data-sources-legacy.md) for history). Use separate branches and review before merging into main.
-
-Further planning docs from the data-pipeline/routing work: [data plan](docs/data-plan.md), [edge-data contract](docs/edge-data-contract.md), [data validation status](docs/data-validation.md), [design](docs/DESIGN.md), [PRD](docs/PRD.md), [implementation plan](docs/IMPLEMENTATION_PLAN.md).
-
-### Run the backend API + MongoDB
+## Run it
 
 ```sh
-cp .env.example .env   # fill in OPENAI_API_KEY and MONGODB_URI (local or Atlas)
+cp .env.example .env   # set OPENAI_API_KEY and MONGODB_URI
 docker compose up -d --build
 ```
 
-- backend — `http://localhost:8000` (`/health`, `/docs`)
-- frontend — `http://localhost:4173` (production build via `vite preview`)
+Backend: http://localhost:8000 (`/health`, `/docs`). Frontend: http://localhost:4173.
 
-`MONGODB_URI` in `.env` can point at a local Mongo (if you add one back to
-`docker-compose.yml`) or an Atlas `mongodb+srv://` connection string — the
-backend container just reads whatever is set there. Logs: `docker compose logs -f`.
-Stop everything: `docker compose down`.
-
-Manual, faster-iteration path:
+First time only, the routing engine needs a local graph and score bundle
+(gitignored, built once, a few minutes):
 
 ```sh
 uv sync
+uv run python -m backend.routing --area dublin
+uv run python -m data.pipeline.download --source all
+uv run python -m data.pipeline.build --edges data/raw/walking_edges.geojson --weekday 4 --hour 23 --output data/processed/edge_scores.json
+```
+
+Faster local loop without Docker:
+
+```sh
 uv run uvicorn backend.api.main:app --reload --port 8000
+cd frontend && npm install && npm run dev -- --port 5173 --strictPort
 ```
 
-```sh
-cd frontend
-cp .env.example .env.local   # set VITE_API_BASE_URL to the backend origin
-npm install
-npm run dev -- --port 5173 --strictPort
-```
+Tests: `uv run pytest`.
 
-Frontend dev server: `http://127.0.0.1:5173`. See [`frontend/README.md`](frontend/README.md)
-for demo-mode fixtures, search/geocoding policy and the [proposed API contract](frontend/API_CONTRACT_PROPOSED.md).
+## Using it
 
-Tests: `uv run pytest` (backend), `cd frontend && npm test && npm run test:browser` (frontend)
+Type a start and a destination and press Find route. This geocodes both
+through OpenStreetMap's Nominatim (one lookup per field, not autocomplete)
+and draws both routes on the map.
 
-### Run the routing engine and data pipeline
+Two real limits to know about, not bugs:
 
-These currently use their own `pip`/`venv` environment (not yet folded into the
-`uv` project above):
+- **Most Eircodes won't resolve.** OSM barely tags Eircodes, so Nominatim
+  usually can't find one. Place names work (`"CHQ Dublin"`, `"Connolly
+  Station Dublin"`).
+- **Points more than 15 km apart outside the cached Dublin area return
+  `UNSUPPORTED_AREA`.** The routing engine downloads a fresh OSM tile for
+  any area outside Dublin on first request, but caps that to 15 km apart so
+  one request can't trigger a huge download.
 
-```sh
-python3 -m venv .venv-routing
-.venv-routing/bin/pip install -r requirements.txt -r requirements-data.txt
-.venv-routing/bin/python -m data.pipeline.download --source all
-.venv-routing/bin/python -m pytest -q
-```
+## What's done
 
-See [`backend/routing/README.md`](backend/routing/README.md) for routing engine usage and
-[`docs/edge-data-contract.md`](docs/edge-data-contract.md) for the data pipeline's output contract.
+- Routing engine (`backend/routing/`): OSM graph, cached Dublin network plus
+  on-demand tiles elsewhere, Fastest and Night routes, NightCost weighting
+  from lighting/activity/crossing data.
+- Data pipeline (`data/pipeline/`): downloads and cleans DCC lighting and
+  footfall data, matches it to graph edges, exports a per-edge score bundle.
+  Lighting covers ~39% of Dublin edge length; footfall covers ~0.3% (34
+  counters, city centre only).
+- Backend API (`backend/api/`, `backend/scoring/`): `POST /route` wired to
+  the routing engine, Route Score and Data Confidence computed from real
+  edge coverage, deterministic (non-AI) explanation text. Verified against
+  real Dublin routes with 221 passing tests.
+- Frontend (`frontend/`): one-page map UI. Type start/destination, see
+  Fastest vs Night compared with distance, time, lighting %, and a
+  confidence badge.
+
+## What's not done / not wired in
+
+- **GTFS/NTA transit data** (`data/pipeline/gtfs*.py`, `nta_download.py`):
+  downloads and parses NTA static and realtime transit feeds. This exists
+  in the codebase but nothing in the API or frontend uses it yet.
+- **Crossing penalties**: the formula exists in the routing engine but has
+  no effect, because the data pipeline doesn't tag edges with crossing type
+  yet.
+- **SCATS signals, Garda/fire/hospital points, RSA collisions, CSO crime
+  context**: researched, not implemented. Street-level crime data isn't
+  reliable enough to use; see "Not doing" below.
+- Preference sliders (prefer better lit / busier / less walking), a nearby-
+  help layer, and a full accessibility pass are not built.
+
+## Not doing
+
+- Crime prediction or any "safety" score. Recorded lighting and historical
+  footfall are not safety measures.
+- Calling emergency services automatically.
+- Community reporting (needs moderation and abuse prevention this scope
+  doesn't have time for).
 
 ## Structure
 
-- `backend/api/`: FastAPI app and `POST /route` endpoint.
-- `backend/routing/`: OSM graph build, caching, Fastest/Night route pathfinding (Person 1).
-- `backend/scoring/`: Route Score, Data Confidence, explanation generation.
-- `backend/db/`: shared MongoDB client.
-- `frontend/`: map UI (Vite, vanilla JS, Leaflet) (Person 3).
-- `data/raw/` and `data/processed/`: local data; payloads ignored pending review.
-- `data/pipeline/`: dataset download, clean, match and export scripts (Person 2).
-- `docs/`: team brief, task split, API contract, data-source evidence and planning docs.
-- `tests/`: backend and routing checks (pytest).
-- `.env.example` / `frontend/.env.example`: placeholders only — copy to `.env` / `.env.local`.
+- `backend/api/`: FastAPI app, `POST /route`.
+- `backend/routing/`: OSM graph, Fastest/Night pathfinding.
+- `backend/scoring/`: Route Score, Data Confidence, explanations.
+- `backend/db/`: MongoDB client.
+- `data/pipeline/`: lighting/footfall/GTFS download and processing scripts.
+- `data/raw/`, `data/processed/`: local build output, gitignored.
+- `frontend/`: the map UI (Vite, vanilla JS, Leaflet).
+- `tests/`: pytest, 221 tests across routing, data pipeline and the API.
 
-## Boundaries
+## Secrets
 
-Keep secrets in ignored local configuration and backend-only. Do not commit live locations, personal travel histories, private account/ticket information or API keys. Confirm model access and event credits before inference.
+Never commit `.env`. `OPENAI_API_KEY` is used only for optional preference
+interpretation and phrasing; routing and scoring are deterministic and don't
+need it to work. `MONGODB_URI` can be local (`docker compose up -d mongo`
+if you add that service back) or an Atlas connection string.
 
-The first version excludes crime prediction and live transit rerouting. Historical readings are not live occupancy; missing counts are not zero. No invented safety scores or improvement percentages.
+## Data sources
 
-Confirm relevant event submission/code-reuse rules and third-party data/code licences. No project licence has been selected by the team.
+- DCC Public Lighting: Dublin City Council via Smart Dublin, CC BY 4.0.
+  2021 asset inventory, not live lamp status.
+- DCC Pedestrian Footfall Counters: Dublin City Council and NTA via Smart
+  Dublin, CC BY 4.0. Historical hourly counts, not live occupancy.
+- OpenStreetMap: © OpenStreetMap contributors, ODbL. Walking network and
+  map tiles.

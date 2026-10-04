@@ -1,4 +1,4 @@
-"""Edge scores from the data pipeline's bundle (docs/edge-data-contract.md).
+"""Edge scores from the data pipeline's bundle.
 
 Unknown-data policy: evidence can only make an edge cheaper than unknown.
 

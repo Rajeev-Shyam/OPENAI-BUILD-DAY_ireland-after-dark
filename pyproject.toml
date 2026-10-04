@@ -4,11 +4,15 @@ version = "0.1.0"
 description = "After-dark walking route tool for Ireland (Build for Ireland prototype)"
 requires-python = ">=3.12"
 dependencies = [
+    "certifi>=2026.7.22",
+    "tzdata>=2026.5",
     "fastapi>=0.142.2",
+    "gtfs-realtime-bindings==1.0.0",
     "networkx==3.7",
     "numpy==2.5.3",
     "openai>=3.24.0",
     "osmnx==2.1.1",
+    "protobuf==6.33.6",
     "pydantic-settings>=2.15.0",
     "pymongo>=4.18.2",
     "pyproj==3.8.0",
@@ -23,6 +27,7 @@ package = false
 [dependency-groups]
 dev = [
     "pytest>=9.1.1",
+    "httpx>=0.28.1",
 ]
 
 [tool.pytest.ini_options]

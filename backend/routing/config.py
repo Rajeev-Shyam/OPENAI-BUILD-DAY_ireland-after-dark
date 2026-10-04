@@ -6,7 +6,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RAW_DIR = REPO_ROOT / "data" / "raw"
 PROCESSED_DIR = REPO_ROOT / "data" / "processed"
-# Handoff with the data pipeline (docs/edge-data-contract.md).
+# Handoff with the data pipeline.
 EDGES_GEOJSON_PATH = RAW_DIR / "walking_edges.geojson"
 EDGE_SCORES_PATH = PROCESSED_DIR / "edge_scores.json"
 

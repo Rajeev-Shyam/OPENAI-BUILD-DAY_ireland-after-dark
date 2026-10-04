@@ -5,6 +5,10 @@ services:
       dockerfile: backend/Dockerfile
     container_name: ireland-after-dark-backend
     env_file: .env
+    volumes:
+      # Host-built graph cache + edge-score bundle (gitignored, built once via
+      # `backend/routing/README.md`'s setup steps) — not baked into the image.
+      - ./data:/app/data
     ports:
       - "8000:8000"
 
