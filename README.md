@@ -2,7 +2,7 @@
 
 A Build for Ireland prototype exploring walking-route choices after dark. Routing works anywhere in Ireland via OpenStreetMap; lighting/footfall/SCATS coverage is Dublin-only today, so routes outside Dublin get an honest Low data-confidence badge.
 
-**Status: FastAPI + MongoDB backend skeleton is running. Person 1's routing engine (`backend/routing/`) and Person 2's data pipeline (`data/pipeline/`) are merged in. Wiring them together behind `POST /route`, plus the frontend, is in progress.**
+**Status: FastAPI + MongoDB backend skeleton is running. Person 1's routing engine (`backend/routing/`) and Person 2's data pipeline (`data/pipeline/`) are merged in and wired together behind `POST /route`. Route Score, the final Data Confidence rule and explanations (Person 4) and a browser check against the real API (Person 3) are still open.**
 
 ## Status by person (`phase1` branch, 4 Oct 2026)
 
@@ -20,10 +20,10 @@ row for full evidence. ✅ done and verified · ⚠️ partially done / blocked 
 | NightCost edge weights + Night Route | ✅ |
 | Return geometry, minutes, metres | ✅ |
 | P1: preference weights (well-lit, busier, crossings, less walking) | ✅ |
-| P1: crossing penalties | ⚠️ formula exists; no effect yet — data pipeline doesn't supply the `crossing` field |
-| P1: performance pass | ❌ not verified |
-| P2: route deviation check | ❌ |
-| **Wired into `backend/api`'s `POST /route`** | ❌ **next integration step** |
+| P1: crossing penalties | ✅ classified from OSM tags (signal / minor / major unsignalised) and active in NightCost. SCATS signal data would refine it — **depends on Person 2** (P1, not started) |
+| P1: performance pass | ✅ 200 random Dublin requests: median 77 ms, p95 202 ms, max 476 ms; startup 13 s (`python -m backend.routing.benchmark`). First request in an uncached area still takes about 80 s (OSM download) |
+| P2: route deviation check | ⚠️ `check_deviation()` built and tested, not exposed. **Depends on Person 4** (endpoint in the API contract) and **Person 3** (frontend sending the walker's position) |
+| **Wired into `backend/api`'s `POST /route`** | ⚠️ live and matching `docs/api-contract.md` for routes, preferences and errors; verified against the real Dublin graph and the frontend's phase1 adapter. `route_score` is `null` and the breakdown, confidence and explanation are provisional — **depends on Person 4** (`backend/scoring/`) |
 
 Details: [`backend/routing/README.md`](backend/routing/README.md)
 
@@ -39,7 +39,7 @@ Details: [`backend/routing/README.md`](backend/routing/README.md)
 | P1: Garda/fire/hospital points layer | ❌ |
 | P1: RSA collisions | ❌ |
 | P2: CSO crime context | ❌ |
-| Integration against Person 1's real Dublin graph | ⚠️ tested only against a synthetic fixture graph so far |
+| Integration against Person 1's real Dublin graph | ⚠️ bundle built on the real graph (267,580 edges, all matched, 2 min 18 s); manual check of river/parallel-street matches still open |
 
 Details: [`docs/data-validation.md`](docs/data-validation.md)
 
@@ -66,7 +66,7 @@ Details: [`frontend/HANDOFF.md`](frontend/HANDOFF.md)
 | Task | Status |
 |---|---|
 | FastAPI app skeleton + MongoDB connection + `/health` | ✅ |
-| `POST /route` matching the contract | ❌ |
+| `POST /route` matching the contract | ⚠️ wired by Person 1 in `backend/api/route.py`; scoring fields provisional (see below) |
 | Route Score / Data Confidence calculation | ❌ |
 | Explanation generator | ❌ |
 | Input validation + error responses | ❌ |
@@ -76,9 +76,10 @@ Details: [`frontend/HANDOFF.md`](frontend/HANDOFF.md)
 
 Details: [`docs/ACCEPTANCE_CHECKLIST.md`](docs/ACCEPTANCE_CHECKLIST.md) (every check currently **NOT RUN**).
 
-**Next piece of work:** wire Person 1's `get_route()` and Person 2's edge-score
-bundle into `POST /route`, then point Person 3's frontend at it with the Real
-API switch — that one path closes the loop for everyone.
+**Next piece of work:** `POST /route` now serves real routes. Remaining to close
+the loop: merge the latest `frontend` branch (its phase1 API adapter is not on
+this branch yet) and check it in a browser against the real API; then Person 4
+replaces the provisional scoring in `backend/api/route.py` with `backend/scoring/`.
 
 ## NTA public transport data
 

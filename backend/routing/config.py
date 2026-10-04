@@ -45,9 +45,13 @@ MAX_ON_DEMAND_KM = 15.0  # straight-line origin to destination
 # still reported as unknown; this only stops missing data counting as zero.
 NEUTRAL_SCORE = 0.5
 
-# Extra metres added per crossing edge, before the crossings weight.
+# Extra metres per crossing, before the crossings weight. OSM maps a crossing
+# as two edges, one for each half of the road, so each edge carries half.
 CROSSING_PENALTY_M = {
     "signal": 10.0,
     "minor": 20.0,
     "major_unsignalised": 80.0,
 }
+
+# Further than this from the chosen route counts as off it (GPS error allowance).
+DEVIATION_TOLERANCE_M = 40.0

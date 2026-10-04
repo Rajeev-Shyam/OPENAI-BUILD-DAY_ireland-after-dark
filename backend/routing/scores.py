@@ -19,6 +19,7 @@ import networkx as nx
 from data.pipeline.edges import file_sha256
 
 from . import config
+from .crossings import classify_crossings
 
 EdgeKey = tuple[int, int, int]
 SCHEMA_VERSION = 1
@@ -80,7 +81,11 @@ def load_edge_scores(
 
 
 def apply_scores(G: nx.MultiDiGraph, scores: dict[EdgeKey, EdgeScore]) -> int:
-    """Set score and cost-term attributes on every edge. Returns edges matched."""
+    """Set score and cost-term attributes on every edge. Returns edges matched.
+
+    Crossing types come from OSM tags unless the bundle supplies its own.
+    """
+    osm_crossings = classify_crossings(G)
     unknown = EdgeScore()
     neutral = config.NEUTRAL_SCORE
     matched = 0
@@ -94,7 +99,9 @@ def apply_scores(G: nx.MultiDiGraph, scores: dict[EdgeKey, EdgeScore]) -> int:
         data["lighting_coverage"] = score.lighting_coverage
         data["activity"] = score.activity
         data["activity_coverage"] = score.activity_coverage
-        data["crossing_type"] = score.crossing  # "crossing" is the OSM tag
+        # "crossing" itself is the OSM tag, so the type gets its own name.
+        crossing = score.crossing or osm_crossings.get((u, v, key))
+        data["crossing_type"] = crossing
         # Cost terms: evidence where there is some, neutral for the rest.
         lit = (score.lighting or 0.0) + (1.0 - score.lighting_coverage) * neutral
         active = (
@@ -103,5 +110,5 @@ def apply_scores(G: nx.MultiDiGraph, scores: dict[EdgeKey, EdgeScore]) -> int:
         )
         data["dark"] = 1.0 - lit
         data["quiet"] = 1.0 - active
-        data["crossing_m"] = config.CROSSING_PENALTY_M.get(score.crossing, 0.0)
+        data["crossing_m"] = config.CROSSING_PENALTY_M.get(crossing, 0.0) / 2
     return matched

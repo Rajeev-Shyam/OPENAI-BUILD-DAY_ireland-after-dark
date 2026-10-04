@@ -157,6 +157,7 @@ class RoutingEngine:
         # near a counter, and near a counter weighted by its activity score.
         lit_m = lighting_known_m = activity_known_m = activity_m = 0.0
         crossings = dict.fromkeys(config.CROSSING_PENALTY_M, 0)
+        run = None  # most severe type in the current run of crossing edges
         for edge in edges:
             data = self.G.edges[edge]
             length = data["length"]
@@ -167,8 +168,13 @@ class RoutingEngine:
             lighting_known_m += length * data["lighting_coverage"]
             activity_known_m += length * data["activity_coverage"]
             activity_m += length * data["activity_coverage"] * (data["activity"] or 0.0)
+            # Consecutive crossing edges are one crossing of the road.
             if data["crossing_type"]:
-                crossings[data["crossing_type"]] += 1
+                run = max(run or data["crossing_type"], data["crossing_type"],
+                          key=config.CROSSING_PENALTY_M.get)
+            elif run:
+                crossings[run] += 1
+                run = None
             segments.append(
                 {
                     "u": edge[0],
@@ -182,6 +188,8 @@ class RoutingEngine:
                     "crossing": data["crossing_type"],
                 }
             )
+        if run:
+            crossings[run] += 1
         distance = self._length(edges)
         return {
             "geometry": {"type": "LineString", "coordinates": coordinates},

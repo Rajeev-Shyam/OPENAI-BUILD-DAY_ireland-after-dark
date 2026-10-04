@@ -29,12 +29,22 @@ The bundle is tied to the exact bytes of the edge export. If you rerun step 1 wi
 
 If the default Overpass server is down, the next one in `config.OVERPASS_URLS` is tried; set `OVERPASS_URL` to put your own first.
 
-## Calling it (API)
+## HTTP API
+
+`POST /route` in [backend/api/route.py](../api/route.py) serves the engine to the shape in [docs/api-contract.md](../../docs/api-contract.md):
+
+```sh
+.venv/bin/python -m uvicorn backend.api.main:app --port 8000
+```
+
+The graph loads in the background at startup (about 13 s); a request arriving before it finishes waits. Contract weights of 0.5 map to the engine defaults below. `route_score` is `null`, and the score breakdown, data confidence and explanation only restate measured route facts until `backend/scoring/` exists. Footfall is used only when the departure time falls in the bundle's weekday and hour; otherwise the response carries a warning.
+
+## Calling it from Python
 
 ```python
 from backend.routing import get_route, get_store, Preferences, RoutingError
 
-get_store()  # at startup: loads the bundle and the Dublin graph, about 12 s
+get_store()  # at startup: loads the bundle and the Dublin graph, about 13 s
 
 result = get_route(
     origin=(53.3489, -6.2479),        # (lat, lon)
@@ -65,7 +75,7 @@ duration_min  distance at 1.3 m/s
 night_cost    NightCost under the request's preferences
 lighting      score, coverage
 activity      score, coverage
-crossings     counts by type: signal, minor, major_unsignalised
+crossings     road crossings by type: signal, minor, major_unsignalised
 segments      per edge: u, v, key, length_m, lighting, lighting_coverage,
               activity, activity_coverage, crossing
 ```
@@ -109,7 +119,25 @@ Unknown-data policy: evidence can only make an edge cheaper than unknown.
 
 So an edge with no data is never costed as dark or empty, and an edge with a few recorded lights is never worse than one with none.
 
-Crossing penalties are 10 m (signal), 20 m (minor) and 80 m (major unsignalised), read from an optional `crossing` field on bundle edges. The pipeline does not supply that field yet, so crossings have no effect today. `less_walking` (0 to 1) scales the other three preferences down. These are preference strengths, not risk measurements; all of them are in `config.py`.
+Crossing penalties are 10 m (signal), 20 m (minor) and 80 m (major unsignalised) per crossing. Types come from OSM tags on the graph ([crossings.py](crossings.py)): an edge tagged `footway=crossing` is a signal crossing if OSM says so, otherwise major when it meets a tertiary-or-larger road and minor when it does not. OSM maps a crossing as two edges, one per half of the road, so each edge carries half the penalty and a run of crossing edges counts as one crossing. The Dublin graph has 15,864 crossing edges. A `crossing` field on a bundle edge overrides the OSM type, which is where SCATS signal data would come in. Crossings that OSM does not tag are not penalised.
+
+`less_walking` (0 to 1) scales the other three preferences down. These are preference strengths, not risk measurements; all of them are in `config.py`.
+
+## Route deviation check
+
+```python
+from backend.routing import check_deviation
+
+check_deviation(result["night"]["geometry"], position=(53.34933, -6.24495))
+# {"off_route": True, "distance_m": 59.7, "progress_m": 302.8,
+#  "remaining_m": 706.8, "nearest": {"lat": 53.34938, "lon": -6.24584}}
+```
+
+`off_route` is true beyond 40 m from the route (`config.DEVIATION_TOLERANCE_M`). It is stateless: positions are not stored or logged. No endpoint exposes it yet.
+
+## Performance
+
+`python -m backend.routing.benchmark` routes 200 random node pairs, 0.3 to 6 km apart, on the cached Dublin graph. Measured on 4 October 2026 (Apple Silicon laptop): startup 13 s; median 77 ms, 95th percentile 202 ms, slowest 476 ms.
 
 ## Coverage and limits
 

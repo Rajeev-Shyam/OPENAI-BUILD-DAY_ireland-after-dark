@@ -10,6 +10,8 @@ from data.pipeline.edges import file_sha256
 
 from backend.routing import config
 from backend.routing import store as store_module
+from backend.routing.crossings import classify_crossings
+from backend.routing.deviation import check_deviation
 from backend.routing.engine import (
     NoRoute,
     OutsideCoverage,
@@ -124,13 +126,63 @@ def test_same_route_when_preferences_do_not_change_the_path():
 
 
 def test_crossing_penalty_can_change_the_route():
-    scores = {(1, 2, 0): EdgeScore(crossing="major_unsignalised")}
+    # Both halves of one road crossing: counted once, penalised once.
+    scores = {
+        (1, 2, 0): EdgeScore(crossing="major_unsignalised"),
+        (2, 4, 0): EdgeScore(crossing="major_unsignalised"),
+    }
     engine = RoutingEngine(make_graph(), scores)
     prefs = Preferences(well_lit=0, busier=0, crossings=2.0)
     result = engine.route(ORIGIN, DESTINATION, prefs)
     assert nodes_of(result["night"]) == [1, 3, 4]
     assert result["fastest"]["crossings"]["major_unsignalised"] == 1
     assert result["night"]["crossings"]["major_unsignalised"] == 0
+    assert result["fastest"]["night_cost"] == 400 + 2.0 * 80
+
+
+def test_crossings_are_classified_from_osm_tags():
+    G = make_graph()
+    for u, v in [(1, 2), (2, 1)]:
+        G.edges[u, v, 0].update(highway="footway", footway="crossing", crossing="traffic_signals")
+    for u, v in [(1, 3), (3, 1)]:
+        G.edges[u, v, 0].update(highway="footway", footway=["sidewalk", "crossing"], crossing="unmarked")
+    for u, v in [(3, 4), (4, 3)]:
+        G.edges[u, v, 0].update(highway="footway", footway="crossing")
+    for u, v in [(2, 4), (4, 2)]:
+        G.edges[u, v, 0]["highway"] = "secondary_link"  # a main road at nodes 2 and 4
+    for u, v in [(5, 6), (6, 5)]:
+        G.edges[u, v, 0].update(highway="footway", footway="sidewalk")
+
+    kinds = classify_crossings(G)
+    assert kinds[(1, 2, 0)] == "signal"  # signals win even beside a main road
+    assert kinds[(1, 3, 0)] == "minor"  # touches no main road
+    assert kinds[(3, 4, 0)] == "major_unsignalised"  # node 4 is on the main road
+    assert (5, 6, 0) not in kinds and (2, 4, 0) not in kinds
+
+    engine = RoutingEngine(G)
+    assert engine.G.edges[1, 2, 0]["crossing_type"] == "signal"
+    # A type supplied by the pipeline bundle overrides the OSM one.
+    engine = RoutingEngine(G, {(1, 2, 0): EdgeScore(crossing="minor")})
+    assert engine.G.edges[1, 2, 0]["crossing_type"] == "minor"
+
+
+def test_deviation_check_measures_distance_and_progress():
+    route = RoutingEngine(make_graph()).route(ORIGIN, DESTINATION)["fastest"]["geometry"]
+
+    on_route = check_deviation(route, NODES[2])
+    assert on_route["off_route"] is False
+    assert on_route["distance_m"] == 0.0
+    assert on_route["progress_m"] == pytest.approx(on_route["remaining_m"], rel=0.01)
+    assert on_route["nearest"]["lat"] == pytest.approx(NODES[2][0])
+
+    # About 110 m north of the midpoint node: beyond the default 40 m tolerance.
+    strayed = check_deviation(route, (NODES[2][0] + 0.001, NODES[2][1]))
+    assert strayed["off_route"] is True
+    assert strayed["distance_m"] == pytest.approx(111, abs=3)
+    assert check_deviation(route, (NODES[2][0] + 0.001, NODES[2][1]), tolerance_m=150)["off_route"] is False
+
+    assert check_deviation(route, ORIGIN)["progress_m"] == 0.0
+    assert check_deviation(route, DESTINATION)["remaining_m"] == 0.0
 
 
 def test_geometry_is_lon_lat_and_follows_direction_of_travel():

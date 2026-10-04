@@ -6,6 +6,7 @@ national graph in memory.
 """
 
 import math
+import threading
 
 from . import config
 from .engine import (
@@ -100,13 +101,15 @@ class GraphStore:
 
 
 _store: GraphStore | None = None
+_store_lock = threading.Lock()
 
 
 def get_store() -> GraphStore:
     """Shared store. Call once at API startup so the first request is fast."""
     global _store
-    if _store is None:
-        _store = GraphStore()
+    with _store_lock:  # a request arriving during warm-up waits for it
+        if _store is None:
+            _store = GraphStore()
     return _store
 
 

@@ -8,6 +8,8 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen
 
 COPY backend ./backend
+# Pipeline code only: the routing engine imports it. Data files are mounted.
+COPY data ./data
 
 ENV PATH="/app/.venv/bin:$PATH"
 

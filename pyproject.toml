@@ -23,6 +23,9 @@ package = false
 [dependency-groups]
 dev = [
     "pytest>=9.1.1",
+    # Needed by the NTA transport pipeline tests (pins from requirements-data.txt).
+    "gtfs-realtime-bindings==1.0.0",
+    "protobuf==6.33.6",
 ]
 
 [tool.pytest.ini_options]
