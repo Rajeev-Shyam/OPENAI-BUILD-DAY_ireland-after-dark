@@ -1,8 +1,10 @@
 # Team project brief
 
+The complete specification is now in [PRD](PRD.md), [design](DESIGN.md) and the [four-person implementation plan](IMPLEMENTATION_PLAN.md). This brief is a summary; where scope differs, follow the PRD. Continue from [NEXT_SESSION.md](NEXT_SESSION.md).
+
 ## Direction
 
-The team proposed an after-dark route tool using public data for Build for Ireland on 4 October 2026. Intended build window: four hours. Final feature scope and roles remain to be agreed.
+The four-person team proposed an after-dark route tool using public data for Build for Ireland on 4 October 2026. Intended build window: four hours. Role names and final optional-feature priorities remain to be agreed. Current repo name is Ireland After Dark; first geography is Dublin.
 
 ## Proposed MVP
 
@@ -29,7 +31,7 @@ No live crime prediction, safety guarantees, realtime transit, live crowd monito
 
 ## Proposed four-hour budget
 
-30 minutes for data/paths; 60 for routing; 60 for map/comparisons; 45 for optional historical activity or AI; final 45 for checks and rehearsal. Drop optional features when time slips.
+Use the parallel role timeline in [the implementation plan](IMPLEMENTATION_PLAN.md): contract/corridor first, real baseline by 90 minutes, preferences by 135, freeze at 180, then verification and rehearsal. Nightlife is the first optional preference; historical footfall is last priority. Drop optional work when time slips.
 
 ## Demo readiness
 
