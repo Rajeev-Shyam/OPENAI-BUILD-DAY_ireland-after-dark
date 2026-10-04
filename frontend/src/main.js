@@ -79,8 +79,12 @@ function routeCard(route, isRecommended = false) {
   const minutes = (route.duration_s / 60).toFixed(0);
   const km = (route.distance_m / 1000).toFixed(2);
   const explanation = route.explanations[0] || '';
+  const hospitalCount = route.nearby_hospitals?.length;
+  const hospitalPointer = hospitalCount !== undefined
+    ? `<li><b>Hospitals nearby</b> <span class="level ${hospitalCount ? 'high' : 'unknown'}">${hospitalCount ? `${hospitalCount} within 1 km` : 'None mapped'}</span></li>`
+    : '';
   const factors = route.score_breakdown.length
-    ? `<ul class="factors">${route.score_breakdown.map(factorPointer).join('')}</ul>`
+    ? `<ul class="factors">${route.score_breakdown.map(factorPointer).join('')}${hospitalPointer}</ul>`
     : '<p class="muted">No recorded lighting or footfall evidence here.</p>';
 
   return `
