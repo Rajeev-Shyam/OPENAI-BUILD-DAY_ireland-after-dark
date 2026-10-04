@@ -1,8 +1,17 @@
 # Person 2 validation record
 
+**Updated integration evidence:** [phase1 data validation](phase1-data-validation.md)
+reproduces the actual Dublin graph handoff. The original fixture receipt below
+is historical; its graph-availability blocker has been resolved. Source
+measurement limitations remain.
+
 Validated locally on 4 October 2026. This record separates executed checks from
 unverified product integration. No claim of scientific validation or universal
 route safety is made.
+
+This records the original lighting/footfall delivery. The subsequent NTA addition
+has its own [validation record](nta-validation.md), including the current combined
+test result; the 77-test result below remains historical evidence for this delivery.
 
 ## Work completed and evidence
 

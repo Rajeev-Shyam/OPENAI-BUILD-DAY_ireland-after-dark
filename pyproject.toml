@@ -5,6 +5,8 @@ description = "After-dark walking route tool for Ireland (Build for Ireland prot
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.142.2",
+    "gtfs-realtime-bindings==1.0.0",
+    "protobuf==6.33.6",
     "networkx==3.7",
     "numpy==2.5.3",
     "openai>=3.24.0",

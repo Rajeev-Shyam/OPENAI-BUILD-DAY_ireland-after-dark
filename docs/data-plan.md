@@ -57,8 +57,17 @@ implemented as part of Person 2's work.
 
 ## Current result
 
-The three specialist workstreams and integration implementation have landed in
-the local working tree. Core downloads and processing are exercised against real
+The user subsequently authorized the NTA schedule/realtime dataset addition.
+Its separate [execution plan](nta-plan.md) and [handoff contract](transport-data-contract.md)
+extend the data scope while keeping transport routing outside this implementation.
+
+The original three specialist workstreams and integration implementation landed
+in the data branch. That initial validation used synthetic geometry. The later
+[phase1 integration receipt](phase1-data-validation.md) supersedes the graph
+availability blocker: 267,580 actual Dublin graph edges are validated and used
+by routing, with NTA, time selection and bounded contextual layers integrated.
+
+Original acceptance record: Core downloads and processing are exercised against real
 source bytes, with synthetic geometry for isolated end-to-end validation. An
 independent review found defects that were reproduced and fixed. See
 [the validation record](data-validation.md) for executed evidence, unresolved

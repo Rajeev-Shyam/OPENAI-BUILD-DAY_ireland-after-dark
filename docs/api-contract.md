@@ -53,7 +53,7 @@ Status: draft, agreed by the team before backend/frontend work starts. Change he
     "reasons": ["lighting data covers this area", "footfall data covers this area"]
   },
   "explanation": [
-    "Night Route is 2 min longer and 29% better lit than the fastest path.",
+    "Night Route is 2 min longer and 29 percentage points more recorded street-light coverage than the fastest path.",
     "Both routes stay inside the area with recorded footfall data."
   ],
   "warnings": []
@@ -62,7 +62,7 @@ Status: draft, agreed by the team before backend/frontend work starts. Change he
 
 - `routes.fastest` / `routes.night`: GeoJSON `LineString` geometry in `[lng, lat]` order (GeoJSON convention), plus distance and duration. `route_score` is `null` on the fastest route (it is not optimised for score).
 - `score_breakdown`: per-factor contribution to `route_score`, out of 100 each. A factor is `null` when its underlying data does not cover the route (e.g. no crossing data for an edge) rather than silently scored `0`.
-- `data_confidence.level`: one of `"high"`, `"medium"`, `"low"`. Outside Dublin this is `"low"` by default because lighting/footfall/SCATS datasets do not cover the area yet — see [DATA_SOURCES.md](DATA_SOURCES.md).
+- `data_confidence.level`: one of `"high"`, `"medium"`, `"low"`. Outside Dublin this is `"low"` by default because lighting/footfall/SCATS datasets do not cover the area yet — see [data-sources.md](data-sources.md).
 - `explanation`: plain-language, deterministic-fact strings. See wording rules below; never invented numbers.
 - `warnings`: non-fatal notices, e.g. `"destination is outside the area with lighting data"`.
 

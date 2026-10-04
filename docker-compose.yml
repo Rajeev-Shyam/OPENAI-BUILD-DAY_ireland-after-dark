@@ -5,6 +5,9 @@ services:
       dockerfile: backend/Dockerfile
     container_name: ireland-after-dark-backend
     env_file: .env
+    volumes:
+      - ./data/raw:/app/data/raw
+      - ./data/processed:/app/data/processed
     ports:
       - "8000:8000"
 

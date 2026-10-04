@@ -102,7 +102,8 @@ Errors are `RoutingError` subclasses with a `code`:
 length_m * (1 + well_lit * (1 - lit) + busier * (1 - active)) + crossings * penalty_m
 ```
 
-Unknown-data policy: evidence can only make an edge cheaper than unknown.
+Unknown-data policy: unsupported portions use neutral preference terms. Observed
+activity below the neutral value can increase cost; missing observations remain unknown.
 
 - `lit`: the part of the edge near a recorded light counts as 1; the part with no evidence counts as 0.5.
 - `active`: the part of the edge near a counter takes that counter's score; the rest counts as 0.5.
@@ -120,3 +121,17 @@ Crossing penalties are 10 m (signal), 20 m (minor) and 80 m (major unsignalised)
 - Routes run between the nearest graph nodes. The walk from the clicked point to that node is not included in distance or time.
 - Distances use OSMnx's spherical edge lengths; the pipeline measures in EPSG:2157. Across the Dublin graph the pipeline's total is 0.2% longer.
 - OSM walking access is not a guarantee of real-world access or closures. Lighting matches are by straight-line distance and can cross rivers or walls.
+
+## Verified data handoff and time selection
+
+The shared Python 3.12 `uv` environment includes routing and NTA dependencies.
+`python -m data.pipeline.validate_handoff` verifies that the actual cached GraphML
+reproduces the scored export and checks route segments against strict validated
+observations. See [the phase1 receipt](../../docs/phase1-data-validation.md).
+
+`load_edge_scores(..., departure_time=aware_datetime)` can prepare another
+historical time slice offline. It validates the full bundle, preserves lighting
+and re-evaluates activity; the default `get_route()` remains fixed to the loaded
+slice. Cache or precompute before request-time integration. See
+[the time contract](../../docs/time-score-contract.md). Crossing metadata in the
+edge export remains evidence only; it does not activate crossing penalties.

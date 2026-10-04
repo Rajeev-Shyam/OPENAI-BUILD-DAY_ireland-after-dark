@@ -192,7 +192,26 @@ def bundle_row(u, v, key, **overrides) -> dict:
 
 def write_bundle(tmp_path, rows, graph_sha=None):
     edges_path = tmp_path / "walking_edges.geojson"
-    edges_path.write_text('{"type": "FeatureCollection", "features": []}')
+    from data.pipeline.edges import metric_geometry
+    import math
+    from shapely.geometry import LineString, mapping
+    geometry = LineString([[-6.2598, 53.3466], [-6.2596, 53.3467]])
+    length = metric_geometry(geometry).length
+    features = []
+    for row in rows:
+        features.append({"type": "Feature", "properties": {k: row[k] for k in ("u", "v", "key")},
+                         "geometry": mapping(geometry)})
+        lit, active = row["lighting_score"] is not None, row["footfall_score"] is not None
+        row.update(length_m=length, has_lighting_data=lit, has_footfall_data=active,
+                   lighting_asset_count=1 if lit else 0, lighting_buffer_m=20,
+                   lighting_proximity_fraction=row["lighting_score"] / 100 if lit else None,
+                   lighting_density_per_km=1000 / length if lit else None,
+                   lighting_coverage_basis="recorded_asset_proximity" if lit else "unknown",
+                   footfall_sample_count=1 if active else 0,
+                   expected_pedestrians_per_hour=math.expm1(row["footfall_score"] / 100 * math.log1p(1000)) if active else None,
+                   footfall_counter_id="fixture" if active else None,
+                   footfall_counter_distance_m=0 if active else None)
+    edges_path.write_text(json.dumps({"type": "FeatureCollection", "features": features}))
     bundle_path = tmp_path / "edge_scores.json"
     bundle_path.write_text(json.dumps({
         "schema_version": 1,
@@ -222,7 +241,7 @@ def test_load_edge_scores_reads_the_pipeline_bundle(tmp_path):
 def test_load_edge_scores_refuses_a_bundle_for_another_graph(tmp_path):
     assert load_edge_scores(tmp_path / "missing.json", tmp_path / "edges.geojson") == ScoreBundle()
 
-    with pytest.raises(ValueError, match="different graph"):
+    with pytest.raises(ValueError, match="Graph fingerprint mismatch"):
         load_edge_scores(*write_bundle(tmp_path, [], graph_sha="0" * 64))
     with pytest.raises(ValueError, match="crossing"):
         load_edge_scores(*write_bundle(tmp_path, [bundle_row(1, 2, 0, crossing="bridge")]))

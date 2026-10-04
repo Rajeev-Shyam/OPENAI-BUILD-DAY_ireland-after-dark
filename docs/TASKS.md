@@ -29,16 +29,22 @@ Names are placeholders. Swap in real ones.
 
 ## Person 2: Data pipeline (`data/`)
 
-- [ ] P0 Download scripts for every dataset, no manual steps
-- [ ] P0 Street-light data: clean, match lights to edges, lighting density per km
-- [ ] P0 Footfall counters: clean, average by weekday and hour, assign to nearby edges
-- [ ] P0 Write per edge scores to a processed file that Person 1 loads
-- [ ] P0 Coverage flag per edge per source (has lighting data, has footfall data)
+- [x] P0 Download scripts for all core lighting/footfall datasets, no manual steps; NTA and implemented context layers also scripted
+- [x] P0 Street-light data: clean, match lights to edges, lighting density per km
+- [x] P0 Footfall counters: clean, average by weekday and hour, assign to nearby edges
+- [x] P0 Write per edge scores to a processed file that Person 1 loads
+- [x] P0 Coverage flag per edge per source (has lighting data, has footfall data)
 - [ ] P1 SCATS signals and OSM crossings to crossing score
-- [ ] P1 Garda stations, fire stations, hospitals as a points layer
+- [x] P1 Garda stations, fire stations, hospitals as points layers (DLR Garda, Dublin fire, Dublin OSM hospital-tagged features; geographic and access limits documented)
 - [ ] P1 RSA collisions as a pedestrian road-risk layer
 - [ ] P2 CSO recorded crime as area context text only
-- [ ] Doc: `docs/data-sources.md` with links, licences, known gaps
+- [x] Doc: `docs/data-sources.md` with links, licences, known gaps
+
+Current evidence: [phase1 data validation](phase1-data-validation.md). SCATS
+source cleaning and conservative OSM way evidence are implemented, but crossing
+scoring remains unchecked until traversal-aware attribution is complete.
+Departure-time evaluation is available on the data side; API/store integration
+and caching remain with Persons 1/4. Points still need Person 3 map rendering.
 
 ## Person 3: Frontend (`frontend/`)
 

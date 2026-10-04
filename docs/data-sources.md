@@ -52,8 +52,22 @@ Credit Dublin City Council via Smart Dublin; footfall is provided by Dublin City
 | [RSA collisions](https://www.rsa.ie/road-safety/statistics/collisions) | Official map describes source-data export and permits use with RSA/date attribution, but explicitly prohibits web scraping and altering data values. | **Automated ingestion blocked:** no sanctioned machine-readable endpoint/licence for this pipeline verified. Do not scrape embedded dashboards. Source notes provisional recent data and some missing coordinates; this would describe road collisions, never personal security. |
 | [CSO recorded crime](https://www.cso.ie/en/releasesandpublications/ep/p-rc/recordedcrimeq12026/backgroundnotes/) | Official methodology checked; records concern reported/known crimes and Garda administrative areas. | P2 context text only. No table/export or table-specific licence verified for ingestion, and no crime weight implemented. |
 
-Transport and weather belong to Person 4's stretch scope. [NTA's developer portal](https://developer.nationaltransport.ie/) needs separate credential/service verification; no account or realtime feed is claimed working here. This pipeline does not acquire GTFS or Met Éireann data.
+The user subsequently requested NTA schedule and realtime ingestion. That addition
+now has a separate [source audit](research-nta-sources.md), [realtime research](research-nta-realtime.md)
+and [data handoff contract](transport-data-contract.md). Static NTA acquisition and
+processing are implemented; both realtime endpoints have passed authenticated
+fetches, with stale observations and identifier mismatches documented in the
+[validation record](nta-validation.md). Transport routing and weather remain outside this
+data-pipeline implementation; Met Éireann ingestion is not implemented.
 
 ## Honest completion boundary
 
 P0 source acquisition is implemented and tested. “Download every dataset” cannot truthfully be marked complete across all proposed P1/P2 sources: the table explicitly distinguishes discovered URLs from tested downloads and unresolved access/licensing. Further sources should be added to the registry only after actual payload and schema checks. Missing geographic coverage remains unknown, including outside Dublin. None of these sources establishes that a route is safe.
+
+## Phase1 contextual layers and integration
+
+See [context-data.md](context-data.md) for pinned Garda, fire, hospital and SCATS
+resources, licences, cleaning rules, geographic limits and actual download receipts.
+[OSM crossing evidence](crossing-data.md) remains separate from crossing costs.
+The [phase1 validation receipt](phase1-data-validation.md) records the real graph
+handoff and runtime checks.
