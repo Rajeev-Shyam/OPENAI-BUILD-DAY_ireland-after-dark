@@ -1,0 +1,38 @@
+# Local Python and Node environments
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+node_modules/
+dist/
+build/
+
+# Secrets / private local configuration
+.env
+.env.*
+!.env.example
+credentials/
+secrets/
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Data payloads and demo backups: review licences/privacy before sharing
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+demo/*.mp4
+demo/*.mov
+demo/*.webm
+demo/*.png
+demo/*.jpg
+demo/*.jpeg
+
+# Local transient files
+*.log
+.cache/
+.DS_Store
+Thumbs.db
