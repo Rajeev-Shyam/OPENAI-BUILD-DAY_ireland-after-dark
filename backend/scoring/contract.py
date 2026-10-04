@@ -1,7 +1,6 @@
-"""Maps the routing engine's result shape onto frontend/API_CONTRACT_PROPOSED.md.
+"""Maps the routing engine's result shape onto the frontend's contract.
 
-Keeps both Person 1's engine and the frontend's adapter unchanged; all the
-translation lives here.
+Keeps Person 1's engine unchanged; all the translation lives here.
 """
 
 from . import route_score
@@ -23,7 +22,7 @@ SOURCES = [
 ]
 
 
-def _route_payload(kind: str, route: dict, status: str, detour: dict, time_slice: dict | None, siblings: dict) -> dict:
+def _route_payload(kind: str, route: dict, status: str, detour: dict | None, time_slice: dict | None, fastest: dict) -> dict:
     has_scores = status != "baseline_only"
     lighting = route["lighting"]
     activity = route["activity"]
@@ -65,28 +64,30 @@ def _route_payload(kind: str, route: dict, status: str, detour: dict, time_slice
         "score_breakdown": breakdown,
         "confidence": confidence,
         "limitations": build_limitations(route, has_scores, time_slice),
-        "explanations": build_explanations(kind, status, siblings["fastest"], siblings["night"], detour),
+        "explanations": build_explanations(kind, status, fastest, route, detour),
         "sources": SOURCES if has_scores else [],
     }
 
 
-def build_route_response(area: str, bbox: tuple[float, float, float, float] | None, engine_result: dict) -> dict:
-    """engine_result is backend.routing.get_route()'s return value, plus the
-    area's bbox (left, bottom, right, top) from the GraphStore."""
-    fastest = engine_result["fastest"]
-    night = engine_result["night"]
-    status = engine_result["status"]
-    detour = engine_result["detour"]
-    time_slice = engine_result.get("time_slice")
-    siblings = {"fastest": fastest, "night": night}
+def build_route_response(
+    area: str,
+    bbox: tuple[float, float, float, float] | None,
+    fastest: dict,
+    time_slice: dict | None,
+    alternatives: list[dict],
+) -> dict:
+    """alternatives: one dict per preference profile, each
+    {"kind": str, "route": dict, "status": str, "detour": dict} - all
+    produced against the same `fastest` baseline from backend.routing.
+    """
+    first_status = alternatives[0]["status"] if alternatives else "baseline_only"
 
-    routes = [
-        _route_payload("fastest", fastest, status, detour, time_slice, siblings),
-        _route_payload("night", night, status, detour, time_slice, siblings),
-    ]
+    routes = [_route_payload("fastest", fastest, first_status, None, time_slice, fastest)]
+    for alt in alternatives:
+        routes.append(_route_payload(alt["kind"], alt["route"], alt["status"], alt["detour"], time_slice, fastest))
 
     description = f"Supported walking network: {area}."
-    if status == "baseline_only":
+    if first_status == "baseline_only":
         description += " No lighting or footfall evidence is available here."
 
     return {

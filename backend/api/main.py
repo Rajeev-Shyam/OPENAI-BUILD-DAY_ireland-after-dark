@@ -7,11 +7,19 @@ from fastapi.responses import JSONResponse
 from pymongo.errors import PyMongoError
 
 from backend.db import get_client
-from backend.routing import RoutingError, get_store
+from backend.routing import Preferences, RoutingError, get_store
 from backend.scoring import build_route_response
 
 from .errors import map_routing_error
 from .schemas import RouteRequest
+
+# Each profile is one real preference weighting the routing engine computes,
+# not a cosmetic label. "Fastest" always comes from the engine's own
+# distance-only baseline, computed once below.
+ALTERNATIVE_PROFILES = [
+    ("best_lit", Preferences(well_lit=1.0, busier=0.2, crossings=0.5, less_walking=0.0)),
+    ("balanced", Preferences(well_lit=0.6, busier=0.6, crossings=0.6, less_walking=0.0)),
+]
 
 
 @asynccontextmanager
@@ -73,8 +81,17 @@ def route(payload: RouteRequest) -> dict:
     area, engine = store.engine_for(origin, destination)
     bbox, _ = store._engines[area]
 
-    result = engine.route(origin, destination)
-    result["area"] = area
-    result["time_slice"] = store.bundle.time_slice
+    fastest = None
+    alternatives = []
+    for kind, prefs in ALTERNATIVE_PROFILES:
+        result = engine.route(origin, destination, prefs)
+        if fastest is None:
+            fastest = result["fastest"]
+        alternatives.append({
+            "kind": kind,
+            "route": result["night"],
+            "status": result["status"],
+            "detour": result["detour"],
+        })
 
-    return build_route_response(area, bbox, result)
+    return build_route_response(area, bbox, fastest, store.bundle.time_slice, alternatives)

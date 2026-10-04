@@ -67,45 +67,61 @@ def test_build_explanations_baseline_only_never_claims_a_night_advantage():
     ]
 
 
-def _engine_result(status="ok"):
-    return {
-        "status": status,
-        "fastest": {
-            "geometry": {"type": "LineString", "coordinates": [[-6.26, 53.34], [-6.25, 53.35]]},
-            "distance_m": 800.0,
-            "duration_min": 10.0,
-            "lighting": {"score": 0.5, "coverage": 0.9},
-            "activity": {"score": None, "coverage": 0.0},
-        },
-        "night": {
-            "geometry": {"type": "LineString", "coordinates": [[-6.26, 53.34], [-6.24, 53.35]]},
-            "distance_m": 850.0,
-            "duration_min": 10.5,
-            "lighting": {"score": 0.8, "coverage": 0.95},
-            "activity": {"score": None, "coverage": 0.0},
-        },
-        "detour": DETOUR,
-        "time_slice": {"weekday": 4, "hour": 23, "timezone": "Europe/Dublin"},
-    }
+FASTEST_ROUTE = {
+    "geometry": {"type": "LineString", "coordinates": [[-6.26, 53.34], [-6.25, 53.35]]},
+    "distance_m": 800.0,
+    "duration_min": 10.0,
+    "lighting": {"score": 0.5, "coverage": 0.9},
+    "activity": {"score": None, "coverage": 0.0},
+}
+NIGHT_ROUTE = {
+    "geometry": {"type": "LineString", "coordinates": [[-6.26, 53.34], [-6.24, 53.35]]},
+    "distance_m": 850.0,
+    "duration_min": 10.5,
+    "lighting": {"score": 0.8, "coverage": 0.95},
+    "activity": {"score": None, "coverage": 0.0},
+}
+TIME_SLICE = {"weekday": 4, "hour": 23, "timezone": "Europe/Dublin"}
+
+
+def _alternatives(status="ok"):
+    return [{"kind": "best_lit", "route": NIGHT_ROUTE, "status": status, "detour": DETOUR}]
 
 
 def test_build_route_response_matches_the_agreed_contract_shape():
-    response = build_route_response("dublin", (-6.39, 53.29, -6.11, 53.41), _engine_result())
+    response = build_route_response(
+        "dublin", (-6.39, 53.29, -6.11, 53.41), FASTEST_ROUTE, TIME_SLICE, _alternatives()
+    )
 
     assert response["mode"] == "walking"
     assert response["coverage"]["bounds"] == [-6.39, 53.29, -6.11, 53.41]
-    assert [route["kind"] for route in response["routes"]] == ["fastest", "night"]
+    assert [route["kind"] for route in response["routes"]] == ["fastest", "best_lit"]
     for route in response["routes"]:
-        assert route["duration_s"] == round(route["distance_m"] and (10.0 if route["kind"] == "fastest" else 10.5) * 60)
+        expected_min = 10.0 if route["kind"] == "fastest" else 10.5
+        assert route["duration_s"] == round(expected_min * 60)
         assert route["confidence"] in ("Low", "Medium", "High")
         assert route["historical_activity"] is None  # no activity evidence in this fixture
 
 
 def test_build_route_response_forces_low_confidence_outside_data_coverage():
-    response = build_route_response("tile_x", None, _engine_result(status="baseline_only"))
+    response = build_route_response(
+        "tile_x", None, FASTEST_ROUTE, TIME_SLICE, _alternatives(status="baseline_only")
+    )
 
     assert response["coverage"]["bounds"] is None
     for route in response["routes"]:
         assert route["confidence"] == "Low"
         assert route["score"] is None
         assert route["sources"] == []
+
+
+def test_build_route_response_supports_three_named_alternatives():
+    alternatives = [
+        {"kind": "best_lit", "route": NIGHT_ROUTE, "status": "ok", "detour": DETOUR},
+        {"kind": "balanced", "route": NIGHT_ROUTE, "status": "ok", "detour": DETOUR},
+    ]
+    response = build_route_response(
+        "dublin", (-6.39, 53.29, -6.11, 53.41), FASTEST_ROUTE, TIME_SLICE, alternatives
+    )
+
+    assert [route["kind"] for route in response["routes"]] == ["fastest", "best_lit", "balanced"]
