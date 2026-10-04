@@ -155,9 +155,12 @@ def build_response(result: dict, prefs: RoutePreferences, use_activity: bool) ->
 def post_route(request: RouteRequest):
     local = (request.departure_time or datetime.now(LOCAL_ZONE)).astimezone(LOCAL_ZONE)
     try:
-        # Footfall scores exist for one weekday and hour; use them only then.
-        time_slice = get_store().bundle.time_slice
-        use_activity = bool(
+        # Activity follows the departure time when the bundle has counter
+        # profiles. Otherwise it exists for one weekday and hour only, and is
+        # used only for a departure in that slot.
+        store = get_store()
+        time_slice = store.bundle.time_slice
+        use_activity = store.activity is not None or bool(
             time_slice
             and (time_slice["weekday"], time_slice["hour"]) == (local.weekday(), local.hour)
         )
@@ -166,6 +169,7 @@ def post_route(request: RouteRequest):
             (request.destination.lat, request.destination.lng),
             engine_preferences(request.preferences, use_activity),
             request.preferences.max_detour_minutes,
+            departure_time=local,
         )
     except RoutingError as error:
         status, code = ROUTING_ERRORS.get(error.code, (500, "INTERNAL_ERROR"))

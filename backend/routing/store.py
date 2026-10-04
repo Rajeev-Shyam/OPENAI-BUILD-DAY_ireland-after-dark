@@ -7,8 +7,12 @@ national graph in memory.
 
 import math
 import threading
+from datetime import datetime
+
+from data.pipeline.time_scores import departure_slot
 
 from . import config
+from .activity import ActivitySlots
 from .engine import (
     LatLon,
     OutsideCoverage,
@@ -63,7 +67,14 @@ class GraphStore:
         self.allow_download = allow_download
         self.bundle = load_edge_scores()
         self._engines: dict[str, tuple[BBox, RoutingEngine]] = {}
-        self._add(area, config.AREAS[area])
+        engine = self._add(area, config.AREAS[area])
+        # Activity for any departure time, where the bundle has counter profiles.
+        self.activity_engine = engine
+        self.activity = (
+            ActivitySlots(engine, self.bundle.profiles, self.bundle.footfall_radius_m)
+            if self.bundle.profiles
+            else None
+        )
 
     def _add(self, name: str, bbox: BBox) -> RoutingEngine:
         G = build_graph(name, bbox)
@@ -118,11 +129,20 @@ def get_route(
     destination: LatLon,
     prefs: Preferences = Preferences(),
     max_extra_minutes: float | None = config.DEFAULT_MAX_EXTRA_MIN,
+    departure_time: datetime | None = None,
 ) -> dict:
-    """Fastest and Night routes between two (lat, lon) points in Ireland."""
-    area, engine = get_store().engine_for(origin, destination)
-    result = engine.route(origin, destination, prefs, max_extra_minutes)
+    """Fastest and Night routes between two (lat, lon) points in Ireland.
+
+    departure_time (timezone-aware) selects the weekday and hour of the
+    historical activity scores. Without it, or without counter profiles in the
+    bundle, activity is the bundle's own snapshot; time_slice says which.
+    """
+    store = get_store()
+    area, engine = store.engine_for(origin, destination)
+    slot = None
+    if departure_time is not None and store.activity and engine is store.activity_engine:
+        slot = store.activity.slot(*departure_slot(departure_time))
+    result = engine.route(origin, destination, prefs, max_extra_minutes, slot)
     result["area"] = area
-    # Activity scores are historical means for this weekday and hour only.
-    result["time_slice"] = get_store().bundle.time_slice
+    result["time_slice"] = slot.time_slice if slot else store.bundle.time_slice
     return result

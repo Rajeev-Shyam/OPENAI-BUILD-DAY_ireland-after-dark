@@ -8,7 +8,7 @@ from backend.api.route import RoutePreferences, engine_preferences
 from backend.routing import Preferences
 from backend.routing import store as store_module
 from backend.routing.scores import ScoreBundle
-from test_routing import NODES, SHORT_DARK_LONG_LIT, make_graph
+from test_routing import NODES, PROFILES, SHORT_DARK_LONG_LIT, make_graph
 
 client = TestClient(app)  # no lifespan: the store is supplied by the fixtures
 FRIDAY_23 = {"weekday": 4, "hour": 23, "timezone": "Europe/Dublin"}
@@ -16,14 +16,15 @@ ON_SLICE = "2026-10-09T23:30:00+01:00"  # a Friday, 23:30 in Dublin
 OFF_SLICE = "2026-10-04T21:30:00+01:00"  # a Sunday
 
 
-def use_store(monkeypatch, scores):
+def use_store(monkeypatch, scores, profiles=None):
     def fake_build_graph(name, bbox):
         G = make_graph()
         G.graph["bbox"] = ",".join(str(c) for c in bbox)
         return G
 
     monkeypatch.setattr(store_module, "build_graph", fake_build_graph)
-    monkeypatch.setattr(store_module, "load_edge_scores", lambda: ScoreBundle(scores, FRIDAY_23))
+    bundle = ScoreBundle(scores, FRIDAY_23, profiles, 100.0 if profiles else None)
+    monkeypatch.setattr(store_module, "load_edge_scores", lambda: bundle)
     monkeypatch.setattr(store_module, "_store", store_module.GraphStore())
 
 
@@ -72,6 +73,16 @@ def test_footfall_is_only_used_for_its_own_weekday_and_hour(scored):
         "so activity was not used for this departure time."
     ]
     assert engine_preferences(RoutePreferences(), use_activity=False).busier == 0.0
+
+
+def test_activity_follows_the_departure_time_when_profiles_exist(monkeypatch):
+    use_store(monkeypatch, SHORT_DARK_LONG_LIT, PROFILES)
+    friday = client.post("/route", json=body(departure_time=ON_SLICE, preferences={"max_detour_minutes": 0})).json()
+    sunday = client.post("/route", json=body(departure_time="2026-10-04T12:30:00+01:00", preferences={"max_detour_minutes": 0})).json()
+    assert friday["warnings"] == sunday["warnings"] == []
+    # Night Route is held to the fastest path here, which passes the counter.
+    assert friday["score_breakdown"]["activity"] == 100
+    assert sunday["score_breakdown"]["activity"] == 0
 
 
 def test_default_weights_give_the_engine_defaults():

@@ -20,8 +20,8 @@ row for full evidence. ✅ done and verified · ⚠️ partially done / blocked 
 | NightCost edge weights + Night Route | ✅ |
 | Return geometry, minutes, metres | ✅ |
 | P1: preference weights (well-lit, busier, crossings, less walking) | ✅ |
-| P1: crossing penalties | ✅ classified from OSM tags (signal / minor / major unsignalised) and active in NightCost. SCATS signal data would refine it — **depends on Person 2** (P1, not started) |
-| P1: performance pass | ✅ 200 random Dublin requests: median 77 ms, p95 202 ms, max 476 ms; startup 13 s (`python -m backend.routing.benchmark`). First request in an uncached area still takes about 80 s (OSM download) |
+| P1: crossing penalties | ✅ classified from explicit OSM tags (signal / minor / major unsignalised / unknown) and active in NightCost. Person 2's exported crossing evidence is signal-only, so it is not what drives the penalties |
+| P1: performance pass | ✅ 200 random Dublin requests: median 82 ms, p95 224 ms, max 512 ms (`python -m backend.routing.benchmark`). ⚠️ Startup rose from 13 s to 38 s with the pipeline's strict bundle validation. First request in an uncached area still takes about 80 s (OSM download) |
 | P2: route deviation check | ⚠️ `check_deviation()` built and tested, not exposed. **Depends on Person 4** (endpoint in the API contract) and **Person 3** (frontend sending the walker's position) |
 | **Wired into `backend/api`'s `POST /route`** | ⚠️ live and matching `docs/api-contract.md` for routes, preferences and errors; verified against the real Dublin graph and the frontend's phase1 adapter. `route_score` is `null` and the breakdown, confidence and explanation are provisional — **depends on Person 4** (`backend/scoring/`) |
 
@@ -41,7 +41,7 @@ Details: [`backend/routing/README.md`](backend/routing/README.md)
 | P2: CSO crime context | ❌ |
 | Integration against Person 1's real Dublin graph | ✅ 267,580 edge records validated and exercised by actual routing |
 | NTA static GTFS + realtime acquisition/QA | ✅ integrated; transit journey planning remains separate |
-| Departure-time activity lookup | ✅ data-side evaluator; API/store wiring and caching remain |
+| Departure-time activity lookup | ✅ data-side evaluator; wired into `backend.routing.get_route(departure_time=...)` with a cached per-slot path, and used by `backend/api/route.py` |
 
 Details: [`docs/phase1-data-validation.md`](docs/phase1-data-validation.md) (current integration receipt);
 [`docs/data-validation.md`](docs/data-validation.md) (original source/fixture validation).

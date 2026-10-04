@@ -1,6 +1,7 @@
 """Routing invariants on a small synthetic graph. No real-world data here."""
 
 import json
+from datetime import datetime, timezone
 
 import networkx as nx
 import pytest
@@ -10,6 +11,7 @@ from data.pipeline.edges import file_sha256
 
 from backend.routing import config
 from backend.routing import store as store_module
+from backend.routing.activity import ActivitySlots
 from backend.routing.crossings import classify_crossings
 from backend.routing.deviation import check_deviation
 from backend.routing.engine import (
@@ -140,30 +142,85 @@ def test_crossing_penalty_can_change_the_route():
     assert result["fastest"]["night_cost"] == 400 + 2.0 * 80
 
 
-def test_crossings_are_classified_from_osm_tags():
+def test_crossings_are_classified_from_explicit_osm_tags():
     G = make_graph()
-    for u, v in [(1, 2), (2, 1)]:
-        G.edges[u, v, 0].update(highway="footway", footway="crossing", crossing="traffic_signals")
-    for u, v in [(1, 3), (3, 1)]:
-        G.edges[u, v, 0].update(highway="footway", footway=["sidewalk", "crossing"], crossing="unmarked")
-    for u, v in [(3, 4), (4, 3)]:
-        G.edges[u, v, 0].update(highway="footway", footway="crossing")
-    for u, v in [(2, 4), (4, 2)]:
-        G.edges[u, v, 0]["highway"] = "secondary_link"  # a main road at nodes 2 and 4
-    for u, v in [(5, 6), (6, 5)]:
-        G.edges[u, v, 0].update(highway="footway", footway="sidewalk")
+
+    def tag(u, v, **tags):
+        for a, b in [(u, v), (v, u)]:
+            G.edges[a, b, 0].update(highway="footway", **tags)
+
+    tag(1, 2, footway="crossing", crossing="traffic_signals")
+    tag(1, 3, footway=["sidewalk", "crossing"], crossing="unmarked")
+    tag(3, 4, footway="crossing")  # a crossing, but nothing says what kind
+    tag(5, 6, footway="sidewalk")
+    for a, b in [(2, 4), (4, 2)]:
+        G.edges[a, b, 0]["highway"] = "secondary_link"  # a main road at nodes 2 and 4
 
     kinds = classify_crossings(G)
     assert kinds[(1, 2, 0)] == "signal"  # signals win even beside a main road
-    assert kinds[(1, 3, 0)] == "minor"  # touches no main road
-    assert kinds[(3, 4, 0)] == "major_unsignalised"  # node 4 is on the main road
+    assert kinds[(1, 3, 0)] == "minor"  # explicitly unsignalised, no main road
+    assert kinds[(3, 4, 0)] == "unknown"  # never assumed to be unsignalised
     assert (5, 6, 0) not in kinds and (2, 4, 0) not in kinds
+
+    tag(3, 4, footway="crossing", crossing="uncontrolled")
+    assert classify_crossings(G)[(3, 4, 0)] == "major_unsignalised"  # node 4 is on the main road
+    tag(3, 4, footway="crossing", **{"crossing:signals": "yes"})
+    assert classify_crossings(G)[(3, 4, 0)] == "unknown"  # tags disagree
+    tag(1, 3, footway="crossing", crossing=None, **{"crossing:signals": "yes"})
+    assert classify_crossings(G)[(1, 3, 0)] == "signal"
 
     engine = RoutingEngine(G)
     assert engine.G.edges[1, 2, 0]["crossing_type"] == "signal"
     # A type supplied by the pipeline bundle overrides the OSM one.
     engine = RoutingEngine(G, {(1, 2, 0): EdgeScore(crossing="minor")})
     assert engine.G.edges[1, 2, 0]["crossing_type"] == "minor"
+
+
+# One counter at node 2: busy on Friday 23:00, empty on Sunday 12:00.
+PROFILES = {
+    "timezone": "Europe/Dublin",
+    "timezone_verified": False,
+    "counters": [{
+        "counter_id": "fixture",
+        "latitude": NODES[2][0],
+        "longitude": NODES[2][1],
+        "bins": [
+            {"weekday": 4, "hour": 23, "mean_count": 1000, "sample_count": 5},
+            {"weekday": 6, "hour": 12, "mean_count": 0, "sample_count": 5},
+        ],
+    }],
+}
+
+
+def test_activity_follows_the_requested_weekday_and_hour():
+    # An entry for one edge is enough for the engine to offer a Night route.
+    engine = RoutingEngine(make_graph(), {(1, 3, 0): EdgeScore()})
+    slots = ActivitySlots(engine, PROFILES, radius_m=100.0)
+
+    friday = slots.slot(4, 23)
+    assert set(friday.scores) == {(1, 2, 0), (2, 1, 0), (2, 4, 0), (4, 2, 0)}
+    score, coverage = friday.scores[(1, 2, 0)]
+    assert score == pytest.approx(1.0)
+    assert coverage == pytest.approx(0.67, abs=0.01)  # 100 m of a 149 m edge
+    assert slots.slot(4, 23) is friday  # cached
+    assert friday.time_slice == {
+        "weekday": 4, "hour": 23, "timezone": "Europe/Dublin", "timezone_verified": False,
+    }
+    assert slots.slot(0, 3).scores == {}  # no observation: unknown, not zero
+
+    keen = Preferences(busier=3.0)
+    busy = engine.route(ORIGIN, DESTINATION, keen, activity=friday)
+    assert busy["status"] == "same_route"
+    assert busy["fastest"]["activity"]["score"] == pytest.approx(1.0)
+    assert busy["fastest"]["activity"]["coverage"] == pytest.approx(0.67, abs=0.01)
+
+    empty = engine.route(ORIGIN, DESTINATION, keen, activity=slots.slot(6, 12))
+    assert nodes_of(empty["night"]) == [1, 3, 4]  # recorded as empty, so avoided
+    assert empty["fastest"]["activity"]["score"] == 0.0
+    assert empty["night"]["activity"] == {"score": None, "coverage": 0.0}
+
+    unknown = engine.route(ORIGIN, DESTINATION, keen, activity=slots.slot(0, 3))
+    assert unknown["fastest"]["activity"] == {"score": None, "coverage": 0.0}
 
 
 def test_deviation_check_measures_distance_and_progress():
@@ -329,6 +386,21 @@ def test_store_uses_cached_area_then_fetches_a_tile_once(built):
     assert name == "tile_-9.07_53.26_-9.03_53.29"
     store.engine_for(*GALWAY)
     assert built == ["dublin", name]  # second request reuses the tile
+
+
+def test_store_selects_activity_for_the_departure_time(monkeypatch, built):
+    bundle = ScoreBundle({(1, 3, 0): EdgeScore()}, {"weekday": 4, "hour": 23}, PROFILES, 100.0)
+    monkeypatch.setattr(store_module, "load_edge_scores", lambda: bundle)
+    monkeypatch.setattr(store_module, "_store", GraphStore())
+
+    snapshot = store_module.get_route(ORIGIN, DESTINATION)
+    assert snapshot["time_slice"] == {"weekday": 4, "hour": 23}
+    assert snapshot["fastest"]["activity"]["score"] is None  # bundle rows carry none here
+
+    sunday_noon = datetime(2026, 10, 4, 11, 30, tzinfo=timezone.utc)  # 12:30 in Dublin
+    timed = store_module.get_route(ORIGIN, DESTINATION, departure_time=sunday_noon)
+    assert (timed["time_slice"]["weekday"], timed["time_slice"]["hour"]) == (6, 12)
+    assert timed["fastest"]["activity"]["score"] == 0.0
 
 
 def test_tile_covers_both_points_with_margin():
