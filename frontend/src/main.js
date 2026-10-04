@@ -43,6 +43,18 @@ function confidenceClass(confidence) {
   return confidence === 'High' ? 'high' : confidence === 'Medium' ? 'medium' : 'low';
 }
 
+const ROUTE_META = {
+  fastest: { title: 'Fastest route', className: 'route-line-fastest', dashArray: undefined },
+  best_lit: { title: 'Best lit route', className: 'route-line-best-lit', dashArray: '12 12' },
+  balanced: { title: 'Balanced route', className: 'route-line-balanced', dashArray: '2 10' },
+};
+
+function recommendedKind(routes) {
+  const candidates = routes.filter(route => route.kind !== 'fastest' && route.score !== null);
+  if (!candidates.length) return null;
+  return candidates.reduce((best, route) => (route.score > best.score ? route : best)).kind;
+}
+
 function factorBar(factor) {
   const known = factor.value !== null;
   const pct = known ? Math.max(0, Math.min(100, factor.value)) : 0;
@@ -53,9 +65,8 @@ function factorBar(factor) {
     </div>`;
 }
 
-function routeCard(route) {
-  const night = route.kind === 'night';
-  const title = night ? 'Night route' : 'Fastest route';
+function routeCard(route, isRecommended) {
+  const meta = ROUTE_META[route.kind] ?? { title: route.kind };
   const minutes = (route.duration_s / 60).toFixed(0);
   const km = (route.distance_m / 1000).toFixed(2);
   const confidence = route.confidence ?? 'Unknown';
@@ -66,7 +77,7 @@ function routeCard(route) {
 
   return `
     <article class="card ${route.kind}">
-      <h2>${title}</h2>
+      <h2>${meta.title}${isRecommended ? '<span class="recommended">Recommended</span>' : ''}</h2>
       <div class="stat-row">
         <div class="stat"><b>${minutes}</b><span>min</span></div>
         <div class="stat"><b>${km}</b><span>km</span></div>
@@ -79,18 +90,30 @@ function routeCard(route) {
 
 function render(data) {
   routeLayer.clearLayers();
-  for (const route of data.routes) {
-    const night = route.kind === 'night';
-    polyline(route.geometry.coordinates.map(toLeaflet), {
-      color: night ? '#f5be53' : '#7ea2ff',
-      weight: night ? 5 : 7,
-      dashArray: night ? '2 10' : undefined,
+
+  // Paint a white+dark casing behind every route first, so overlapping
+  // routes stay distinguishable instead of one hiding another's colour.
+  const paths = data.routes.map(route => route.geometry.coordinates.map(toLeaflet));
+  for (const [color, weight] of [['#ffffff', 15], ['#172229', 11]]) {
+    for (const path of paths) {
+      polyline(path, { color, weight, opacity: 1, interactive: false }).addTo(routeLayer);
+    }
+  }
+  for (const [index, route] of data.routes.entries()) {
+    const meta = ROUTE_META[route.kind] ?? {};
+    polyline(paths[index], {
+      className: meta.className,
+      weight: route.kind === 'fastest' ? 8 : 6,
+      opacity: 1,
+      dashArray: meta.dashArray,
+      interactive: false,
     }).addTo(routeLayer);
   }
   if (routeLayer.getLayers().length) map.fitBounds(routeLayer.getBounds(), { padding: [60, 60] });
 
+  const recommended = recommendedKind(data.routes);
   byId('sheet-intro').textContent = 'Compared using recorded street lighting and historical footfall activity. No crime data is used.';
-  byId('sheet-body').innerHTML = data.routes.map(routeCard).join('');
+  byId('sheet-body').innerHTML = data.routes.map(route => routeCard(route, route.kind === recommended)).join('');
   byId('sheet').hidden = false;
   status('');
 }

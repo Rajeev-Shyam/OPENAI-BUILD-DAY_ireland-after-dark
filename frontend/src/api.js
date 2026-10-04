@@ -5,11 +5,10 @@ const optionalNumber = (value, maximum = Infinity) => value === null || (Number.
 
 export function validateResponse(data) {
   const fail = () => { throw new RouteError('INVALID_RESPONSE', 'The API response does not match the agreed contract.'); };
-  if (data?.mode !== 'walking' || !Array.isArray(data.routes) || data.routes.length !== 2 || !data.coverage || typeof data.coverage.description !== 'string') fail();
+  if (data?.mode !== 'walking' || !Array.isArray(data.routes) || !data.routes.length || !data.routes.some(route => route.kind === 'fastest') || !data.coverage || typeof data.coverage.description !== 'string') fail();
   const bounds = data.coverage.bounds;
   if (bounds !== null && (!Array.isArray(bounds) || bounds.length !== 4 || !isCoordinate(bounds.slice(0,2)) || !isCoordinate(bounds.slice(2)) || bounds[0] >= bounds[2] || bounds[1] >= bounds[3])) fail();
-  for (const kind of ['fastest','night']) {
-    const route = data.routes.find(candidate => candidate.kind === kind);
+  for (const route of data.routes) {
     if (!route || route.geometry?.type !== 'LineString' || !Array.isArray(route.geometry.coordinates) || route.geometry.coordinates.length < 2 || !route.geometry.coordinates.every(isCoordinate)) fail();
     if (!Number.isFinite(route.distance_m) || route.distance_m < 0 || !Number.isFinite(route.duration_s) || route.duration_s < 0 || !optionalNumber(route.lighting_coverage_pct,100) || !optionalNumber(route.score,100)) fail();
     if (!['Low','Medium','High',null].includes(route.confidence)) fail();
