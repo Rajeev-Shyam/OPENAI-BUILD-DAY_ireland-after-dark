@@ -1,8 +1,10 @@
 # Ireland After Dark — frontend
 
 Person 3 contribution. Vite, vanilla JavaScript and Leaflet. Starts in explicit
-synthetic demo mode. The backend and agreed API contract are absent on the fetched
-`origin/docs/task-split` (3f969b0); real integration is not verified.
+synthetic demo mode. `backend-routing` is merged into `frontend`, including the
+routing engine and data pipeline. `phase1` is also merged, including the shared API
+contract, Docker setup and FastAPI health scaffold. A frontend-owned local HTTP
+bridge is available; Person 4's /route implementation and overall scoring remain pending.
 
 The interface takes visual direction from the user-supplied
 [SafeWalkMaps reference](https://www.safewalkmaps.com/): dark surfaces, amber accents
@@ -48,14 +50,59 @@ There is no automatic fallback after a real API failure.
 Copy `.env.example` to `.env.local` and set `VITE_API_BASE_URL` to the local backend
 origin (e.g. http://127.0.0.1:8000). Restart Vite after changing configuration.
 Without configuration the adapter calls same-origin `POST /route`.
+`VITE_API_CONTRACT=phase1` (default) uses `docs/api-contract.md`: named lat/lng
+request objects, keyed route objects, top-level factors/confidence/explanations.
+`VITE_API_CONTRACT=development` uses the local bridge's earlier normalized shape.
+The profile is explicit; a response mismatch errors instead of switching protocols.
+The shared contract does not supply measured lighting/activity coverage, source dates
+or routing bounds, so these remain unknown. Factor scores are never shown as coverage.
 `VITE_TILE_URL` may replace the default tile template; a replacement provider must
 allow the usage and its required attribution must be added in src/main.js.
 All VITE variables are public browser values: never put credentials in them.
 
-Read [the proposed contract](API_CONTRACT_PROPOSED.md). Person 4 must agree or replace
-it and configure CORS for http://127.0.0.1:5173 (JSON POST preflight included).
+Read [the shared API contract](../docs/api-contract.md). Person 4 must implement
+it and configure CORS for the frontend origin (JSON POST preflight included).
+The [old proposal](API_CONTRACT_PROPOSED.md) now documents the development bridge only.
 Only src/api.js handles API transport/validation; src/main.js uses its normalized
 route shape. No transit preferences or scoring formulas are implemented.
+
+## Local routing bridge
+
+This development-only bridge connects the merged Python routing engine to the
+existing frontend contract. It binds only 127.0.0.1, allows the local frontend
+origin, omits journey logs and serves only a prebuilt cached graph. It is not a
+production server or a replacement for Person 4's API/scoring work.
+
+From repository root, using the existing project-local Python environment:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r frontend/requirements-dev-api.txt
+.\.venv\Scripts\python.exe -m backend.routing --area dublin
+.\.venv\Scripts\python.exe -m data.pipeline.download --source all
+.\.venv\Scripts\python.exe -m data.pipeline.build --edges data/raw/walking_edges.geojson --weekday 6 --hour 20 --output data/processed/edge_scores.json
+.\.venv\Scripts\python.exe frontend/dev_api.py
+```
+
+The graph/data commands belong to the merged routing and pipeline packages. Their
+outputs stay ignored. The example bundle is Sunday 20:00, under the pipeline's
+unverified Europe/Dublin source-clock interpretation. If the selected weekday/hour
+differs, activity is excluded from routing and displayed as unknown; lighting can
+still apply. Changing the bundle requires restarting the bridge.
+
+Set `VITE_API_BASE_URL=http://127.0.0.1:8000` and `VITE_API_CONTRACT=development`
+in ignored `.env.local`, then choose
+Real API. `GET /health` exposes readiness and cached graph bounds. No-evidence
+responses preserve valid walking metrics and label Night unavailable. Overall
+route preference scores remain unknown; normalized historical activity is not a
+safety score. See HANDOFF.md for what has actually been verified on this checkout.
+
+Bridge regression tests: `.\.venv\Scripts\python.exe -m pytest -q frontend/tests/test_dev_api.py`.
+Browser regression tests now use port 5174 so the live preview on 5173 can remain open.
+
+The phase1 Docker files are preserved but Docker deployment has not been run here.
+Their application API only serves /health at this commit. Do not run it on the same
+port as the development bridge. Changing to that API requires selecting the phase1
+profile and implementing /route first; MongoDB is not required by the local bridge.
 
 ## Search and provider policy
 
