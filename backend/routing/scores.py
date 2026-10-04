@@ -1,4 +1,4 @@
-"""Edge scores from the data pipeline's bundle.
+"""Edge scores from the data pipeline's bundle (docs/edge-data-contract.md).
 
 Unknown-data policy: unsupported portions use a neutral preference score.
 
