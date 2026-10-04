@@ -2,6 +2,11 @@
 
 The complete specification is now in [PRD](PRD.md), [design](DESIGN.md) and the [four-person implementation plan](IMPLEMENTATION_PLAN.md). This brief is a summary; where scope differs, follow the PRD. Continue from [NEXT_SESSION.md](NEXT_SESSION.md).
 
+**Historical starter proposal.** The subsequent team task split targets Ireland
+routing with Dublin-specific evidence. Person 2's current implementation scope
+and acceptance gates are in [data-plan.md](data-plan.md). The narrower scope and
+timing assumptions below predate that split.
+
 ## Direction
 
 The four-person team proposed an after-dark route tool using public data for Build for Ireland on 4 October 2026. Intended build window: four hours. Role names and final optional-feature priorities remain to be agreed. Current repo name is Ireland After Dark; first geography is Dublin.

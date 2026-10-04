@@ -1,0 +1,4 @@
+# Versions exercised by the data pipeline; Python >=3.9.
+shapely==2.0.7
+pyproj==3.6.1
+pytest==8.4.2

@@ -1,6 +1,6 @@
 # Design — Ireland After Dark
 
-Proposed implementation specification, 4 October 2026. No application endpoints, modules or algorithms below exist yet. [PRD](PRD.md) owns scope; [data notes](DATA_SOURCES.md) own observed source facts.
+Proposed implementation specification, 4 October 2026. No application endpoints, modules or algorithms below exist yet. [PRD](PRD.md) owns scope; [data notes](data-sources.md) own observed source facts.
 
 ## Architecture
 

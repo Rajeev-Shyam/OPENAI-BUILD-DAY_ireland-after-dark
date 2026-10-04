@@ -7,7 +7,7 @@ Status on 4 October 2026: **planning and team starter exist; application impleme
 1. [PRD](PRD.md): user, scope, priorities and what is confirmed.
 2. [Design](DESIGN.md): architecture, routing behaviour, data/API contracts and unknowns.
 3. [Four-person implementation plan](IMPLEMENTATION_PLAN.md): ownership, schedule, gates and cut order.
-4. [Data sources](DATA_SOURCES.md): actual prior download evidence and dataset defects.
+4. [Data sources](data-sources.md): actual prior download evidence and dataset defects.
 5. [Acceptance](ACCEPTANCE_CHECKLIST.md) and [decisions](DECISIONS_SHARED.md).
 
 ## Current repository and evidence
@@ -30,7 +30,7 @@ Do not start with nationwide search, recent crime prediction, live transport or 
 
 ## Copy-ready prompt for implementation
 
-> Continue Ireland After Dark from the saved repository. Read docs/NEXT_SESSION.md, docs/PRD.md, docs/DESIGN.md, docs/IMPLEMENTATION_PLAN.md, docs/DATA_SOURCES.md and docs/ACCEPTANCE_CHECKLIST.md first; read any applicable local AGENTS.md without sharing personal notes. Do not restart idea selection or prior research. Work on the first bounded data-and-path milestone for a four-person human team: establish one small Dublin corridor, validate the local dependency setup, load recorded lighting, retrieve a real pedestrian graph and verify a genuine shortest path with source provenance. Use the proposed defaults where non-blocking; record changes and missing facts. Preserve existing files and credentials. No account/key creation, paid inference, deployment, visibility changes, invitations or contact. Do not spawn agents unless explicitly asked. Verify the milestone, update the shared plan/handoff with actual commands/results and known gaps, and leave one concrete next action. Coordinate role ownership before parallel human changes; do not claim other people's tasks are complete.
+> Continue Ireland After Dark from the saved repository. Read docs/NEXT_SESSION.md, docs/PRD.md, docs/DESIGN.md, docs/IMPLEMENTATION_PLAN.md, docs/data-sources.md and docs/ACCEPTANCE_CHECKLIST.md first; read any applicable local AGENTS.md without sharing personal notes. Do not restart idea selection or prior research. Work on the first bounded data-and-path milestone for a four-person human team: establish one small Dublin corridor, validate the local dependency setup, load recorded lighting, retrieve a real pedestrian graph and verify a genuine shortest path with source provenance. Use the proposed defaults where non-blocking; record changes and missing facts. Preserve existing files and credentials. No account/key creation, paid inference, deployment, visibility changes, invitations or contact. Do not spawn agents unless explicitly asked. Verify the milestone, update the shared plan/handoff with actual commands/results and known gaps, and leave one concrete next action. Coordinate role ownership before parallel human changes; do not claim other people's tasks are complete.
 
 This prompt authorises milestone work only when the user sends it to the implementation session. Writing it here does not mean the application has been built or paid access authorised.
 
