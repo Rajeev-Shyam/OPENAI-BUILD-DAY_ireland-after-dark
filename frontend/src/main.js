@@ -59,52 +59,40 @@ function confidenceClass(confidence) {
   return confidence === 'High' ? 'high' : confidence === 'Medium' ? 'medium' : 'low';
 }
 
-function factorBar(factor) {
-  const known = factor.value !== null;
-  const pct = known ? Math.max(0, Math.min(100, factor.value)) : 0;
-  return `
-    <div class="factor">
-      <div class="factor-label"><span>${escapeHTML(factor.label)}</span><b>${known ? `${factor.value.toFixed(0)}/100` : 'Unknown'}</b></div>
-      <div class="factor-track"><div class="factor-fill ${known ? '' : 'unknown'}" style="width:${known ? pct : 100}%"></div></div>
-    </div>`;
+const FACTOR_NAMES = { 'Recorded lighting': 'Street lighting', 'Historical activity': 'Footfall activity' };
+
+function level(value) {
+  if (value === null || value === undefined) return 'Unknown';
+  if (value < 34) return 'Low';
+  if (value < 67) return 'Medium';
+  return 'High';
+}
+
+function factorPointer(factor) {
+  const name = FACTOR_NAMES[factor.label] || factor.label;
+  const tier = level(factor.value);
+  return `<li><b>${escapeHTML(name)}</b> <span class="level ${tier.toLowerCase()}">${tier}</span></li>`;
 }
 
 function routeCard(route, isRecommended = false) {
   const title = routeTitles[route.kind];
   const minutes = (route.duration_s / 60).toFixed(0);
   const km = (route.distance_m / 1000).toFixed(2);
-  const confidence = route.confidence ?? 'Unknown';
   const explanation = route.explanations[0] || '';
   const factors = route.score_breakdown.length
-    ? route.score_breakdown.map(factorBar).join('')
+    ? `<ul class="factors">${route.score_breakdown.map(factorPointer).join('')}</ul>`
     : '<p class="muted">No recorded lighting or footfall evidence here.</p>';
-  const hospitals = route.nearby_hospitals === null || route.nearby_hospitals === undefined
-    ? '<p class="muted">Hospital data unavailable.</p>'
-    : route.nearby_hospitals.length
-      ? `<ul class="hospital-list">${route.nearby_hospitals.map(h => `<li>${escapeHTML(h.name)} <span>${h.distance_from_route_m} m from route</span></li>`).join('')}</ul>`
-      : '<p class="muted">No mapped hospital landmarks within 1 km in this snapshot.</p>';
 
   return `
     <article class="card ${route.kind}" style="border-top-color:${routeColours[route.kind]}">
-      <h2>${title}${isRecommended ? '<span class="recommended" title="Highest recorded evidence score among the non-fastest options; not a safety rating">Recommended</span>' : ''}</h2>
+      <h2>${title}${isRecommended ? '<span class="recommended">Recommended</span>' : ''}</h2>
       <div class="stat-row">
         <div class="stat"><b>${minutes}</b><span>min</span></div>
         <div class="stat"><b>${km}</b><span>km</span></div>
       </div>
-      <span class="badge ${confidenceClass(confidence)}">${confidence} confidence</span>
-      <div class="factors">${factors}</div>
-      <p class="muted">Lamp operating status: unknown. Recorded assets do not confirm working lights.</p>
+      ${factors}
       <p class="explain">${escapeHTML(explanation)}</p>
-      <details class="nearby-hospitals"><summary>${route.nearby_hospitals?.length ?? 'Unknown'} nearby mapped hospitals</summary>
-        ${hospitals}
-        <p class="muted">Within 1 km straight-line of the route, not a walk to an entrance. Opening hours and emergency care are unverified.</p>
-      </details>
       <button class="view-route" type="button" data-route="${route.kind}">Show this route on map</button>
-      <details class="evidence"><summary>Evidence and limitations</summary>
-        <p class="muted">Recorded lighting evidence: ${route.lighting_coverage_pct === null ? 'Unknown' : `${route.lighting_coverage_pct.toFixed(1)}% of route length`}. Walking time is an estimate, not a guarantee.</p>
-        <ul>${route.limitations.map(item => `<li>${escapeHTML(item)}</li>`).join('')}</ul>
-        <ul>${route.sources.map(source => `<li>${escapeHTML(source.name)} (${escapeHTML(source.date || 'date unknown')}) — ${escapeHTML(source.attribution)}</li>`).join('')}</ul>
-      </details>
     </article>`;
 }
 
