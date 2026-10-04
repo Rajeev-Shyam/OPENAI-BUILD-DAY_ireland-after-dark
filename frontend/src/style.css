@@ -77,6 +77,7 @@ button { font: inherit; cursor: pointer; }
 }
 .close:hover { color: #fff; background: rgba(255,255,255,0.08); }
 
+.sheet-intro { text-align: center; font-size: 0.74rem; color: #9fb0b5; margin: 0 0 14px; }
 #sheet-body { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; max-width: 760px; margin: 0 auto; }
 .card {
   border: 1px solid var(--border); border-radius: 14px; padding: 18px;
@@ -98,6 +99,15 @@ button { font: inherit; cursor: pointer; }
 .badge.high { background: #1d3b2a; color: #7fe3a8; }
 .badge.medium { background: #3d341a; color: #f0ce93; }
 .badge.low { background: #3d1f1a; color: #ff9b8c; }
+
+.factors { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+.factor-label { display: flex; justify-content: space-between; font-size: 0.74rem; color: #c3cbce; margin-bottom: 4px; }
+.factor-label b { color: #edf0ef; }
+.factor-track { height: 6px; border-radius: 4px; background: rgba(255,255,255,0.08); overflow: hidden; }
+.factor-fill { height: 100%; border-radius: 4px; background: var(--amber); transition: width 0.4s cubic-bezier(.16,1,.3,1); }
+.card.night .factor-fill { background: var(--fastest); }
+.factor-fill.unknown { background: repeating-linear-gradient(45deg, #4a5257, #4a5257 6px, #3a4044 6px, #3a4044 12px); }
+.muted { font-size: 0.78rem; color: #9fb0b5; margin: 0 0 14px; }
 
 .explain { font-size: 0.82rem; color: #c3cbce; line-height: 1.5; margin: 0; }
 
