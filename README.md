@@ -29,6 +29,15 @@ is required for actual routing; the included synthetic geometry is only a test
 fixture. Review [validation status](docs/data-validation.md) before declaring a
 deliverable complete.
 
+## NTA public transport data
+
+The [NTA handoff guide](docs/transport-data-contract.md) covers static GTFS downloads,
+SQLite timetable processing, stop GeoJSON, authenticated realtime snapshots and
+static/realtime identifier audits. [Validation status](docs/nta-validation.md)
+records real static-feed checks and successful authenticated realtime fetches,
+including stale observations and unresolved timetable references. This addition prepares data for the transport team; it does not provide
+multimodal routing or waiting-time recommendations.
+
 ## Proposed first demo
 
 Compare the shortest walking route with an alternative favouring proximity to recorded public lighting assets, within a user's acceptable detour. Show both paths, calculated distance, estimated time, source dates and missing information.

@@ -57,6 +57,10 @@ implemented as part of Person 2's work.
 
 ## Current result
 
+The user subsequently authorized the NTA schedule/realtime dataset addition.
+Its separate [execution plan](nta-plan.md) and [handoff contract](transport-data-contract.md)
+extend the data scope while keeping transport routing outside this implementation.
+
 The three specialist workstreams and integration implementation have landed in
 the local working tree. Core downloads and processing are exercised against real
 source bytes, with synthetic geometry for isolated end-to-end validation. An
