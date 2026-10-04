@@ -16,7 +16,7 @@ tileLayer(import.meta.env.VITE_TILE_URL || 'https://tile.openstreetmap.org/{z}/{
 }).addTo(map);
 const routeLayer = featureGroup().addTo(map);
 const hospitalLayer = featureGroup().addTo(map);
-const routeColours = {fastest:'#7ea2ff',night:'#f5be53',alternative1:'#ad8dff',alternative2:'#6dd6b0'};
+const routeColours = {fastest:'#3975ff',night:'#f5be53',alternative1:'#ad8dff',alternative2:'#6dd6b0'};
 const markers = {};
 
 function status(message, isError = false) {
@@ -107,9 +107,23 @@ function render(data) {
   routeLayer.clearLayers();
   hospitalLayer.clearLayers();
   const lines = {};
-  for (const route of data.routes) {
-    lines[route.kind] = polyline(route.geometry.coordinates.map(toLeaflet), {
-      color: routeColours[route.kind], weight:5, opacity:.7,
+  // Paint every casing first so an overlapping route cannot hide another's colour.
+  const routes = [...data.routes].sort((a, b) => Number(a.kind === 'night') - Number(b.kind === 'night'));
+  const paths = routes.map(route => route.geometry.coordinates.map(toLeaflet));
+  for (const [color, weight] of [['#ffffff', 15], ['#172229', 11]]) {
+    for (const path of paths) {
+      polyline(path, { color, weight, opacity: 1, interactive: false }).addTo(routeLayer);
+    }
+  }
+  for (const [index, route] of routes.entries()) {
+    const night = route.kind === 'night';
+    lines[route.kind] = polyline(paths[index], {
+      color: routeColours[route.kind],
+      className: night ? 'route-line-night' : route.kind === 'fastest' ? 'route-line-fastest' : 'route-line-alternative',
+      weight: night ? 6 : 8,
+      opacity: 1,
+      dashArray: night ? '12 12' : undefined,
+      interactive: false,
     }).addTo(routeLayer);
   }
   const padding = () => window.innerWidth > 640
