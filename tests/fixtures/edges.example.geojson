@@ -1,0 +1,27 @@
+{
+  "type": "FeatureCollection",
+  "is_test_fixture": true,
+  "description": "SYNTHETIC TEST GEOMETRIES ONLY. Not an OSM graph, navigable routes or surveyed pedestrian paths. Replace with Person 1's actual graph export for routing.",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {"u": "test-dublin-a", "v": "test-dublin-b", "key": "0"},
+      "geometry": {"type": "LineString", "coordinates": [[-6.25982, 53.34662], [-6.25982, 53.34762]]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"u": "test-dublin-b", "v": "test-dublin-a", "key": "0"},
+      "geometry": {"type": "LineString", "coordinates": [[-6.25982, 53.34762], [-6.25982, 53.34662]]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"u": "test-cork-a", "v": "test-cork-b", "key": "0"},
+      "geometry": {"type": "LineString", "coordinates": [[-8.47, 51.90], [-8.47, 51.901]]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"u": "test-belfast-a", "v": "test-belfast-b", "key": "0"},
+      "geometry": {"type": "LineString", "coordinates": [[-5.93, 54.59], [-5.93, 54.591]]}
+    }
+  ]
+}

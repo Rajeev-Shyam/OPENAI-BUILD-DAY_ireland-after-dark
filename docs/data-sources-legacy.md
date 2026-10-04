@@ -1,5 +1,10 @@
 # Public data notes
 
+**Historical starter notes.** The current audited source documentation, verified
+licence versions, download commands and quality findings are in
+[data-sources.md](data-sources.md). These earlier notes are preserved as context;
+their unresolved questions may have been answered in the current audit.
+
 Access checks: 4 October 2026, anonymous requests. Inspected in memory; no snapshots included. Data access is not application verification.
 
 ## Public Lighting DCC
