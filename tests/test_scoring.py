@@ -118,10 +118,10 @@ def test_build_route_response_forces_low_confidence_outside_data_coverage():
 def test_build_route_response_supports_three_named_alternatives():
     alternatives = [
         {"kind": "best_lit", "route": NIGHT_ROUTE, "status": "ok", "detour": DETOUR},
-        {"kind": "balanced", "route": NIGHT_ROUTE, "status": "ok", "detour": DETOUR},
+        {"kind": "quick_detour", "route": NIGHT_ROUTE, "status": "ok", "detour": DETOUR},
     ]
     response = build_route_response(
         "dublin", (-6.39, 53.29, -6.11, 53.41), FASTEST_ROUTE, TIME_SLICE, alternatives
     )
 
-    assert [route["kind"] for route in response["routes"]] == ["fastest", "best_lit", "balanced"]
+    assert [route["kind"] for route in response["routes"]] == ["fastest", "best_lit", "quick_detour"]

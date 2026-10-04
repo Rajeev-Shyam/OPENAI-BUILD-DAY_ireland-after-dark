@@ -13,12 +13,18 @@ from backend.scoring import build_route_response
 from .errors import map_routing_error
 from .schemas import RouteRequest
 
-# Each profile is one real preference weighting the routing engine computes,
-# not a cosmetic label. "Fastest" always comes from the engine's own
-# distance-only baseline, computed once below.
+# Each profile is a real (preference, max_extra_minutes) pair the routing
+# engine computes, not a cosmetic label. "Fastest" always comes from the
+# engine's own distance-only baseline, computed once below.
+#
+# Both alternatives weight lighting, not activity: footfall coverage is only
+# ~0.3% of Dublin edge length today, so an activity-weighted "balanced"
+# profile almost always collapses onto the same path as the lighting-only
+# one. The detour cap is the one axis that reliably produces a genuinely
+# different path with the data actually available right now.
 ALTERNATIVE_PROFILES = [
-    ("best_lit", Preferences(well_lit=1.0, busier=0.2, crossings=0.5, less_walking=0.0)),
-    ("balanced", Preferences(well_lit=0.6, busier=0.6, crossings=0.6, less_walking=0.0)),
+    ("best_lit", Preferences(well_lit=1.0, busier=0.3, crossings=0.5, less_walking=0.0), 10.0),
+    ("quick_detour", Preferences(well_lit=1.0, busier=0.3, crossings=0.5, less_walking=0.0), 2.0),
 ]
 
 
@@ -83,8 +89,8 @@ def route(payload: RouteRequest) -> dict:
 
     fastest = None
     alternatives = []
-    for kind, prefs in ALTERNATIVE_PROFILES:
-        result = engine.route(origin, destination, prefs)
+    for kind, prefs, max_extra_minutes in ALTERNATIVE_PROFILES:
+        result = engine.route(origin, destination, prefs, max_extra_minutes)
         if fastest is None:
             fastest = result["fastest"]
         alternatives.append({

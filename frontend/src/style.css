@@ -89,7 +89,7 @@ button { font: inherit; cursor: pointer; }
   animation: fade-up 0.4s cubic-bezier(.16,1,.3,1) backwards;
 }
 .card.best_lit { border-top-color: var(--amber); animation-delay: 0.06s; }
-.card.balanced { border-top-color: var(--balanced); animation-delay: 0.12s; }
+.card.quick_detour { border-top-color: var(--balanced); animation-delay: 0.12s; }
 .card h2 { font-size: 1.05rem; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .recommended {
   font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
@@ -115,11 +115,13 @@ button { font: inherit; cursor: pointer; }
 .factor-track { height: 6px; border-radius: 4px; background: rgba(255,255,255,0.08); overflow: hidden; }
 .factor-fill { height: 100%; border-radius: 4px; background: var(--fastest); transition: width 0.4s cubic-bezier(.16,1,.3,1); }
 .card.best_lit .factor-fill { background: var(--amber); }
-.card.balanced .factor-fill { background: var(--balanced); }
+.card.quick_detour .factor-fill { background: var(--balanced); }
 .factor-fill.unknown { background: repeating-linear-gradient(45deg, #4a5257, #4a5257 6px, #3a4044 6px, #3a4044 12px); }
 .muted { font-size: 0.78rem; color: #9fb0b5; margin: 0 0 14px; }
 
 .explain { font-size: 0.82rem; color: #c3cbce; line-height: 1.5; margin: 0; }
+.same-as { font-size: 0.74rem; color: #f0ce93; background: #3d341a; border-radius: 8px; padding: 8px 10px; margin: 0 0 12px; }
+.sources { font-size: 0.68rem; color: #70797c; margin: 10px 0 0; }
 
 @keyframes drop-in { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: none; } }
 @keyframes pop-in { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }

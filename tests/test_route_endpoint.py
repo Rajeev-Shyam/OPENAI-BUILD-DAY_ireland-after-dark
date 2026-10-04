@@ -29,7 +29,7 @@ def test_route_returns_three_alternatives_for_a_real_dublin_corridor(client):
     assert response.status_code == 200
     body = response.json()
     assert body["mode"] == "walking"
-    assert {route["kind"] for route in body["routes"]} == {"fastest", "best_lit", "balanced"}
+    assert {route["kind"] for route in body["routes"]} == {"fastest", "best_lit", "quick_detour"}
     for route in body["routes"]:
         assert route["distance_m"] > 0
         assert route["duration_s"] > 0

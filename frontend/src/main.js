@@ -44,15 +44,33 @@ function confidenceClass(confidence) {
 }
 
 const ROUTE_META = {
-  fastest: { title: 'Fastest route', className: 'route-line-fastest', dashArray: undefined },
-  best_lit: { title: 'Best lit route', className: 'route-line-best-lit', dashArray: '12 12' },
-  balanced: { title: 'Balanced route', className: 'route-line-balanced', dashArray: '2 10' },
+  fastest: { title: 'Fastest route', color: '#3975ff', dashArray: undefined },
+  best_lit: { title: 'Best lit route', color: '#f5be53', dashArray: '12 12' },
+  quick_detour: { title: 'Well lit, shorter detour', color: '#b57bff', dashArray: '2 10' },
 };
 
 function recommendedKind(routes) {
   const candidates = routes.filter(route => route.kind !== 'fastest' && route.score !== null);
   if (!candidates.length) return null;
   return candidates.reduce((best, route) => (route.score > best.score ? route : best)).kind;
+}
+
+// Routes with byte-identical geometry are a real, honest result (no better
+// alternative exists within the detour limits tried) - never claim three
+// distinct lines when two options genuinely are the same path.
+function groupByGeometry(routes) {
+  const groups = [];
+  const indexByKey = new Map();
+  for (const route of routes) {
+    const key = JSON.stringify(route.geometry.coordinates);
+    if (indexByKey.has(key)) {
+      groups[indexByKey.get(key)].push(route);
+    } else {
+      indexByKey.set(key, groups.length);
+      groups.push([route]);
+    }
+  }
+  return groups;
 }
 
 function factorBar(factor) {
@@ -65,7 +83,7 @@ function factorBar(factor) {
     </div>`;
 }
 
-function routeCard(route, isRecommended) {
+function routeCard(route, isRecommended, sameAs) {
   const meta = ROUTE_META[route.kind] ?? { title: route.kind };
   const minutes = (route.duration_s / 60).toFixed(0);
   const km = (route.distance_m / 1000).toFixed(2);
@@ -74,6 +92,12 @@ function routeCard(route, isRecommended) {
   const factors = route.score_breakdown.length
     ? route.score_breakdown.map(factorBar).join('')
     : '<p class="muted">No recorded lighting or footfall evidence here.</p>';
+  const sameAsNote = sameAs
+    ? `<p class="same-as">Identical path to ${ROUTE_META[sameAs]?.title ?? sameAs} - no better alternative exists within the detour tried.</p>`
+    : '';
+  const sources = route.sources.length
+    ? `<p class="sources">Data: ${route.sources.map(s => s.name).join(' + ')}</p>`
+    : '';
 
   return `
     <article class="card ${route.kind}">
@@ -83,27 +107,32 @@ function routeCard(route, isRecommended) {
         <div class="stat"><b>${km}</b><span>km</span></div>
       </div>
       <span class="badge ${confidenceClass(confidence)}">${confidence} confidence</span>
+      ${sameAsNote}
       <div class="factors">${factors}</div>
       <p class="explain">${explanation}</p>
+      ${sources}
     </article>`;
 }
 
 function render(data) {
   routeLayer.clearLayers();
 
-  // Paint a white+dark casing behind every route first, so overlapping
-  // routes stay distinguishable instead of one hiding another's colour.
-  const paths = data.routes.map(route => route.geometry.coordinates.map(toLeaflet));
+  // Group routes with byte-identical geometry: draw each unique path once,
+  // so an overlap reads as "these two options agree," not as a missing line.
+  const groups = groupByGeometry(data.routes);
+  const uniquePaths = groups.map(group => group[0].geometry.coordinates.map(toLeaflet));
+
   for (const [color, weight] of [['#ffffff', 15], ['#172229', 11]]) {
-    for (const path of paths) {
+    for (const path of uniquePaths) {
       polyline(path, { color, weight, opacity: 1, interactive: false }).addTo(routeLayer);
     }
   }
-  for (const [index, route] of data.routes.entries()) {
-    const meta = ROUTE_META[route.kind] ?? {};
-    polyline(paths[index], {
-      className: meta.className,
-      weight: route.kind === 'fastest' ? 8 : 6,
+  for (const [index, group] of groups.entries()) {
+    const primary = group[0];
+    const meta = ROUTE_META[primary.kind] ?? { color: '#999999' };
+    polyline(uniquePaths[index], {
+      color: meta.color,
+      weight: primary.kind === 'fastest' ? 8 : 6,
       opacity: 1,
       dashArray: meta.dashArray,
       interactive: false,
@@ -113,7 +142,13 @@ function render(data) {
 
   const recommended = recommendedKind(data.routes);
   byId('sheet-intro').textContent = 'Compared using recorded street lighting and historical footfall activity. No crime data is used.';
-  byId('sheet-body').innerHTML = data.routes.map(route => routeCard(route, route.kind === recommended)).join('');
+  byId('sheet-body').innerHTML = groups
+    .flatMap(group => group.map((route, position) => routeCard(
+      route,
+      route.kind === recommended,
+      position === 0 ? null : group[0].kind,
+    )))
+    .join('');
   byId('sheet').hidden = false;
   status('');
 }
