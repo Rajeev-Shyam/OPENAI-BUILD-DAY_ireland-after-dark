@@ -92,3 +92,22 @@ test('editing cancels stale API results and loading is visible',async ({page}) =
   await expect(page.locator('#results article')).toHaveCount(0);
   await expect(page.getByRole('button',{name:'Compare routes'})).toBeEnabled();
 });
+
+test('redesigned navigation, empty state and responsive planner',async ({page}) => {
+  await expect(page.locator('#results-empty')).toBeVisible();
+  await page.getByRole('link',{name:'Plan your walk'}).click();
+  await expect(page).toHaveURL(/#planner$/);
+  for (const width of [320,768,1440]) {
+    await page.setViewportSize({width,height:1000});
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  }
+  await page.evaluate(() => window.scrollTo({top:0,behavior:'instant'}));
+  await page.screenshot({path:'test-results/desktop-hero.png'});
+  await selectJourney(page);
+  await page.getByRole('button',{name:'Compare routes'}).click();
+  await expect(page.locator('#results-empty')).toBeHidden();
+  await page.getByRole('button',{name:'Show routes'}).click();
+  await page.locator('.planner-grid').screenshot({path:'test-results/desktop-planner.png'});
+  await page.getByLabel('Origin place search').fill('Cork');
+  await expect(page.locator('#results-empty')).toBeVisible();
+});

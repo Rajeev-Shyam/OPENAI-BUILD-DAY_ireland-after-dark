@@ -5,6 +5,25 @@
 `origin/docs/task-split` at `3f969b0`. The owner authorises pushing only `frontend`
 from now on. No merge into another branch is authorised.
 
+## Visual refresh — 4 October 2026
+
+User-supplied reference: https://www.safewalkmaps.com/, visually inspected in a
+browser. Adapted the dark palette, warm amber accents and route-led presentation
+into an original Ireland After Dark interface. No reference assets, testimonials,
+safety guarantees, live-data scores or unimplemented features were copied.
+
+The desktop planner has controls beside a sticky map; phones use a stacked layout.
+Added navigation/skip link, a clearly labelled illustrative route diagram, an empty
+comparison state and a concise data-limitations section. Fastest is blue; Night is
+amber and dashed. Existing API contract and adapter remain unchanged.
+
+Verification for this refresh: production build passes; all 6 Edge browser tests
+pass, including the original 5 flows and new navigation/empty-state/layout checks
+at 320px, 768px and 1440px. Desktop hero/planner and mobile screenshots visually
+reviewed. Public tiles were blocked in tests; live tiles and real API integration
+remain unverified. Earlier 5 core tests are unchanged and were not rerun for this
+presentation change. Test/build processes were launched hidden on Windows.
+
 ## Implemented
 
 - Vite/vanilla JavaScript/Leaflet Ireland map, OSM attribution, selected A/B markers.

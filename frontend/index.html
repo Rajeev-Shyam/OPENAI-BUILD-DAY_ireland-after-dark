@@ -1,23 +1,76 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="strict-origin-when-cross-origin"><title>Ireland After Dark</title></head>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="theme-color" content="#101315">
+  <meta name="description" content="Compare walking routes in Ireland using recorded lighting and historical pedestrian activity. Understand the evidence and its gaps.">
+  <title>Ireland After Dark — Know your walk</title>
+</head>
 <body>
-<header><p class="eyebrow">IRELAND AFTER DARK</p><h1>A clearer picture of your walk.</h1><p>Compare walking routes with recorded lighting and historical pedestrian activity.</p></header>
-<main>
-<div id="demo-banner" class="warning"><strong>Demo data — not a real journey recommendation.</strong> All routes and metrics are synthetic.</div>
-<section class="controls" aria-label="Journey controls">
-<div class="row"><label>Data mode<select id="mode"><option value="mock">Demo (synthetic)</option><option value="api">Real API</option></select></label><label id="scenario-label">Demo scenario<select id="scenario"><option value="normal">Two routes</option><option value="identical">Identical routes</option><option value="low">Low confidence / missing data</option><option value="unsupported">Unsupported area</option><option value="no-route">No route</option></select></label></div>
-<p id="mode-note">Demo uses a fixed illustrative Dublin journey, regardless of selected endpoints.</p>
-<div class="row" id="locations"></div>
-<p class="muted">Search the local directory of approximate town centres, or choose a point on the map. No address lookup. Search stays on this device.</p>
-<div class="row"><label>Departure · Europe/Dublin<input id="departure" type="datetime-local" required></label><label>Clock change occurrence<select id="occurrence"><option value="earlier">First occurrence (default)</option><option value="later">Second occurrence</option></select></label></div>
-<p class="muted">Occurrence matters only when clocks go back. Nonexistent spring clock times are rejected.</p>
-<button id="compare" type="button">Compare routes</button>
-</section>
-<p id="status" role="status" aria-live="polite">Choose endpoints, then compare routes.</p>
-<p id="coverage" class="coverage">Backend-supported bounds: unknown. An Ireland map does not establish routing coverage.</p>
-<section aria-label="Route map"><div class="map-tools"><button id="fit" type="button">Show routes</button><span><b class="fastest">━━ Fastest</b> · <b class="night">┄┄ Night</b> · dashed grey: returned routing bounds</span></div><div id="map" aria-label="Ireland map; use the labelled coordinate fields as a keyboard alternative"></div><p id="map-status" role="status"></p></section>
-<section id="results" aria-label="Route comparison" aria-live="polite"></section>
-<footer>Recorded lighting coverage does not prove lamps work. Historical activity is not live crowds or safety. Route preference scores do not predict danger. Walking times are estimates.<br>Map tiles: <a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a>. Viewing the map sends tile requests to OpenStreetMap. No journey history is stored.</footer>
-</main><script type="module" src="/src/main.js"></script>
-</body></html>
+  <a class="skip-link" href="#planner">Skip to route planner</a>
+  <header class="site-header">
+    <a class="brand" href="#"><span class="brand-mark" aria-hidden="true">◐</span><span>Ireland<span class="brand-secondary">After Dark</span></span></a>
+    <nav aria-label="Main navigation"><a href="#planner">Plan a walk</a><a href="#understanding">Understand the data</a><span class="prototype-tag">Walking prototype</span></nav>
+  </header>
+  <main>
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="status-dot" aria-hidden="true"></span> A little more context for the way home</p>
+        <h1 id="hero-title">Your night.<br>Your route.<br><span>Know the difference.</span></h1>
+        <p class="hero-description">The quickest walk isn’t the only option. Compare routes with recorded lighting and historical activity — and see where the evidence runs out.</p>
+        <a class="primary-link" href="#planner">Plan your walk <span aria-hidden="true">↗</span></a>
+        <p class="hero-note">No account. No journey history. Just a clearer comparison.</p>
+      </div>
+      <div class="route-preview">
+        <div class="preview-heading"><span>ONE JOURNEY. TWO PERSPECTIVES.</span><span class="preview-pill">Illustration</span></div>
+        <svg class="route-illustration" viewBox="0 0 480 250" role="img" aria-label="Illustration of two different paths connecting an origin and destination, not an actual route">
+          <defs><pattern id="street-grid" width="64" height="48" patternUnits="userSpaceOnUse" patternTransform="rotate(-18)"><path d="M 64 0 L 0 0 0 48" fill="none" stroke="#343b40" stroke-width="1"/></pattern></defs>
+          <rect width="480" height="250" fill="url(#street-grid)"/>
+          <path d="M 80 190 L 160 190 L 220 80 L 394 80" class="illustration-fastest"/>
+          <path d="M 80 190 L 104 119 L 172 119 L 208 39 L 340 39 L 394 80" class="illustration-night"/>
+          <circle cx="80" cy="190" r="16" fill="#101315" stroke="#e6e8e9" stroke-width="2"/><text x="80" y="195" text-anchor="middle" fill="#fff" font-size="13">A</text>
+          <circle cx="394" cy="80" r="16" fill="#f5be53"/><text x="394" y="85" text-anchor="middle" fill="#16191b" font-size="13">B</text>
+        </svg>
+        <div class="preview-legend"><span><i class="line-swatch fastest-swatch"></i> Fastest route</span><span><i class="line-swatch night-swatch"></i> Night route</span></div>
+        <div class="preview-caption"><strong>See the trade-offs.</strong><p>Distance, walking time and the data behind each route. A preference score, never a promise of safety.</p></div>
+      </div>
+    </section>
+    <section id="planner" class="planner-section" aria-labelledby="planner-title" tabindex="-1">
+      <div class="section-heading"><div><p class="eyebrow">THE ROUTE PLANNER</p><h2 id="planner-title">Where are you heading?</h2></div><span class="section-note">Walking routes · Europe/Dublin</span></div>
+      <div id="demo-banner" class="warning demo-banner"><span class="demo-label">DEMO</span><div><strong>Demo data — not a real journey recommendation.</strong><span> All routes and metrics are synthetic.</span></div></div>
+      <div class="planner-grid">
+        <section class="controls" aria-label="Journey controls">
+          <div class="panel-heading"><h3>Your walk</h3><span class="step-label">01 / PLAN</span></div>
+          <div class="row"><label>Data mode<select id="mode"><option value="mock">Demo (synthetic)</option><option value="api">Real API</option></select></label><label id="scenario-label">Demo scenario<select id="scenario"><option value="normal">Two routes</option><option value="identical">Identical routes</option><option value="low">Low confidence / missing data</option><option value="unsupported">Unsupported area</option><option value="no-route">No route</option></select></label></div>
+          <p id="mode-note" class="muted">Demo uses a fixed illustrative Dublin journey, regardless of selected endpoints.</p>
+          <div id="locations"></div>
+          <p class="muted directory-note">Search the local directory of approximate town centres, or choose a point on the map. No address lookup. Search stays on this device.</p>
+          <div class="departure-controls"><label>Departure · Europe/Dublin<input id="departure" type="datetime-local" required></label><label>Clock change occurrence<select id="occurrence"><option value="earlier">First occurrence (default)</option><option value="later">Second occurrence</option></select></label></div>
+          <p class="muted clock-note">Occurrence matters only when clocks go back. Nonexistent spring clock times are rejected.</p>
+          <button id="compare" type="button">Compare routes</button>
+          <p id="status" role="status" aria-live="polite">Choose endpoints, then compare routes.</p>
+        </section>
+        <section class="map-panel" aria-label="Route map">
+          <div class="map-heading"><div><span class="eyebrow">EXPLORE IRELAND</span><h3>A map, with the full picture.</h3></div><button id="fit" class="secondary" type="button">Show routes</button></div>
+          <div id="map" aria-label="Ireland map; use the labelled coordinate fields as a keyboard alternative"></div>
+          <div class="map-legend"><span><i class="line-swatch fastest-swatch"></i><b class="fastest">Fastest</b></span><span><i class="line-swatch night-swatch"></i><b class="night">Night</b></span><span><i class="line-swatch bounds-swatch"></i> Returned routing bounds</span></div>
+          <p id="map-status" role="status"></p>
+          <p id="coverage" class="coverage">Backend-supported bounds: unknown. An Ireland map does not establish routing coverage.</p>
+          <div class="map-footnote"><span class="footnote-mark" aria-hidden="true">i</span><p>Coverage varies by source. Missing lighting or activity data will be shown, not filled in.</p></div>
+        </section>
+      </div>
+      <div class="section-heading comparison-heading"><div><p class="eyebrow">02 / COMPARE</p><h2>Two routes. Your choice.</h2></div><span class="section-note">Evidence first. Trade-offs visible.</span></div>
+      <div id="results-empty" class="empty-state"><span aria-hidden="true">A ───── B</span><h3>Your comparison starts here.</h3><p>Choose two locations and compare routes to see walking times, recorded coverage and the reasons behind each option.</p></div>
+      <section id="results" aria-label="Route comparison" aria-live="polite"></section>
+    </section>
+    <section id="understanding" class="understanding" aria-labelledby="understanding-title">
+      <div class="section-heading"><div><p class="eyebrow">KNOW WHAT YOU’RE LOOKING AT</p><h2 id="understanding-title">More information. Clear limits.</h2></div></div>
+      <div class="principles"><article><span class="principle-number">01</span><h3>Recorded lighting</h3><p>Streetlight records show coverage. They don’t tell us how bright a street is or whether a lamp works tonight.</p></article><article><span class="principle-number">02</span><h3>Historical activity</h3><p>Pedestrian patterns describe past observations. They aren’t live crowds or a measure of safety.</p></article><article><span class="principle-number">03</span><h3>Confidence, explained</h3><p>Missing evidence stays visible. Route preference scores don’t predict danger, and walking times are estimates.</p></article></div>
+    </section>
+    <footer><div><strong>Ireland After Dark</strong><p>Know your walk. Understand the evidence.</p></div><p>Map tiles: <a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a>.<br>Viewing the map sends tile requests to OpenStreetMap. No journey history is stored.</p><a href="#planner">Back to planner ↑</a></footer>
+  </main>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

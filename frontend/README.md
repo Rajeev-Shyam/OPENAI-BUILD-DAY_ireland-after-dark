@@ -4,6 +4,12 @@ Person 3 contribution. Vite, vanilla JavaScript and Leaflet. Starts in explicit
 synthetic demo mode. The backend and agreed API contract are absent on the fetched
 `origin/docs/task-split` (3f969b0); real integration is not verified.
 
+The interface takes visual direction from the user-supplied
+[SafeWalkMaps reference](https://www.safewalkmaps.com/): dark surfaces, amber accents
+and route-focused presentation. Original copy and illustration retain this project's
+evidence limitations. Desktop uses a side-by-side planner/map; mobile stacks them.
+Use the Plan your walk link to jump directly to the functional planner.
+
 ## Local commands (PowerShell)
 
 Requires Node 20.19+ or 22.12+; developed with Node 24.16.0 / npm 11.13.0.
