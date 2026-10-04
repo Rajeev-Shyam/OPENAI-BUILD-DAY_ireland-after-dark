@@ -12,6 +12,7 @@ class Settings(BaseSettings):
 
     api_host: str = "0.0.0.0"
     api_port: int = 8000
+    geocoding_url: str = 'https://nominatim.openstreetmap.org/search'
 
 
 settings = Settings()

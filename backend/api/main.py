@@ -9,9 +9,15 @@ from pymongo.errors import PyMongoError
 from backend.db import get_client
 from backend.routing import RoutingError, get_store
 from backend.scoring import build_route_response
+from backend.routing.engine import Preferences
+from data.pipeline.time_scores import departure_slot
 
 from .errors import map_routing_error
 from .schemas import RouteRequest
+from .geocoding import PlaceQuery, search
+from .transport import stops, realtime_status
+from .hospitals import attach_hospitals
+from backend.routing.alternatives import add_alternatives
 
 
 @asynccontextmanager
@@ -24,10 +30,47 @@ app = FastAPI(title="Ireland After Dark API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173",
+                   "http://localhost:4173", "http://127.0.0.1:4173",
+                   "http://127.0.0.1:5174"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware('http')
+async def no_store(request, call_next):
+    response = await call_next(request)
+    response.headers['Cache-Control'] = 'no-store'
+    return response
+
+
+@app.post('/geocode')
+def geocode(payload: PlaceQuery):
+    try:
+        result = search(payload.query)
+        if result is None:
+            return _error_response('PLACE_NOT_FOUND', 'No matching place found in Ireland. Try latitude, longitude.', 404)
+        return result
+    except (ValueError, OSError):
+        return _error_response('SEARCH_UNAVAILABLE', 'Place search unavailable. Try latitude, longitude.', 503)
+
+
+@app.get('/transport/stops')
+def transport_stops():
+    try:
+        return stops()
+    except (OSError, ValueError, KeyError, TypeError):
+        return _error_response('DATA_UNAVAILABLE', 'Luas stop snapshot is unavailable. Walking routes still work.', 503)
+
+
+@app.get('/transport/status')
+def transport_status():
+    try:
+        return realtime_status()
+    except (OSError, ValueError, KeyError, TypeError):
+        return {'status': 'unavailable', 'received_at_unix': None, 'age_seconds': None,
+                'message': 'Saved NTA snapshot failed validation.'}
 
 
 def _error_response(code: str, message: str, status: int) -> JSONResponse:
@@ -73,8 +116,25 @@ def route(payload: RouteRequest) -> dict:
     area, engine = store.engine_for(origin, destination)
     bbox, _ = store._engines[area]
 
-    result = engine.route(origin, destination)
+    time_slice = store.bundle.time_slice
+    activity_enabled = bool(time_slice and departure_slot(payload.departure_time) ==
+                            (time_slice['weekday'], time_slice['hour']))
+    prefs = Preferences(busier=0.5 if activity_enabled else 0.0)
+    result = engine.route(origin, destination, prefs)
+    result = add_alternatives(engine, result, prefs)
+    if not activity_enabled:
+        for candidate in [result['fastest'], result['night'], *result.get('alternatives', [])]:
+            candidate['activity'] = {'score': None, 'coverage': 0.0}
+    if all(candidate['lighting']['score'] is None and candidate['activity']['score'] is None
+           for candidate in [result['fastest'], result['night'], *result.get('alternatives', [])]):
+        result['status'] = 'baseline_only'
     result["area"] = area
     result["time_slice"] = store.bundle.time_slice
 
-    return build_route_response(area, bbox, result)
+    response = build_route_response(area, bbox, result)
+    response['activity_enabled'] = activity_enabled
+    response['departure_time'] = payload.departure_time.isoformat()
+    if not activity_enabled:
+        for route in response['routes']:
+            route['limitations'].append('Historical activity is excluded from ranking and display: no matching weekday/hour snapshot for this departure.')
+    return attach_hospitals(response)

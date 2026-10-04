@@ -1,6 +1,6 @@
 # Ireland After Dark
 
-Compares a Fastest route and a Night route for walking in Ireland. The Night
+Shows up to three distinct walking candidates in a scrollable left sidebar. The Night
 route favours streets with recorded lighting and historical footfall. It is
 not a safety score. It does not use crime data. Missing data shows as
 unknown, never as zero.
@@ -35,13 +35,12 @@ uv run uvicorn backend.api.main:app --reload --port 8000
 cd frontend && npm install && npm run dev -- --port 5173 --strictPort
 ```
 
-Tests: `uv run pytest`.
+Tests: `uv run pytest`; frontend: `npm test`, `npm run test:browser`, `npm run build`.
 
 ## Using it
 
 Type a start and a destination and press Find route. This geocodes both
-through OpenStreetMap's Nominatim (one lookup per field, not autocomplete)
-and draws both routes on the map.
+through the backend's rate-limited, cached OpenStreetMap Nominatim proxy (no autocomplete). You can also enter latitude, longitude or click map points. [Nominatim policy](https://operations.osmfoundation.org/policies/nominatim/) requires at most one request per second across the app; this prototype uses a shared workspace gate and should run as one local API instance. Change GEOCODING_URL to switch provider.
 
 Two real limits to know about, not bugs:
 
@@ -65,24 +64,37 @@ Two real limits to know about, not bugs:
 - Backend API (`backend/api/`, `backend/scoring/`): `POST /route` wired to
   the routing engine, Route Score and Data Confidence computed from real
   edge coverage, deterministic (non-AI) explanation text. Verified against
-  real Dublin routes with 221 passing tests.
+  real Dublin routes; see the current checks below.
 - Frontend (`frontend/`): one-page map UI. Type start/destination, see
-  Fastest vs Night compared with distance, time, lighting %, and a
-  confidence badge.
+  up to three distinct candidates with distance, estimated time, recorded-lighting evidence, confidence, nearby mapped hospitals and source limitations. Results extend below the input panel.
 
-## What's not done / not wired in
+## Snapshot layers and limits
 
-- **GTFS/NTA transit data** (`data/pipeline/gtfs*.py`, `nta_download.py`):
-  downloads and parses NTA static and realtime transit feeds. This exists
-  in the codebase but nothing in the API or frontend uses it yet.
-- **Crossing penalties**: the formula exists in the routing engine but has
-  no effect, because the data pipeline doesn't tag edges with crossing type
-  yet.
-- **SCATS signals, Garda/fire/hospital points, RSA collisions, CSO crime
-  context**: researched, not implemented. Street-level crime data isn't
-  reliable enough to use; see "Not doing" below.
-- Preference sliders (prefer better lit / busier / less walking), a nearby-
-  help layer, and a full accessibility pass are not built.
+- Luas stops are an opt-in map layer. NTA realtime is shown as a dated saved
+  snapshot, not continuous live tracking. Credentials stay backend-only.
+- Nearby hospitals are OSM landmarks within 1 km straight-line of each route;
+  opening hours, entrances, public access and emergency care are unverified.
+- Lighting is a recorded asset inventory, **not working-lamp status**. Activity
+  is historical and is excluded when its snapshot weekday/hour does not match.
+- The context/crossing/time-score pipelines are integrated. Existing graph caches
+  may lack crossing evidence; do not infer signal control from nearby SCATS sites.
+- No transit journey planner, live wait estimates or supported preference sliders.
+
+Prepare optional layers once (generated data stays ignored):
+
+```sh
+uv run python -m data.pipeline.nta_download --source nta_gtfs_luas
+uv run python -m data.pipeline.transport build --source nta_gtfs_luas --output data/processed/luas.sqlite
+uv run python -m data.pipeline.transport stops --database data/processed/luas.sqlite --output data/processed/luas-stops.geojson
+uv run python -m data.pipeline.context_layers all
+uv run python -m data.pipeline.gtfs_realtime fetch --output data/raw/nta-realtime --env-file .env
+```
+
+The NTA command makes one request. All requests using the key must share that
+output directory and stay at least 60 seconds apart, including failed requests.
+[Official usage policy](https://developer.nationaltransport.ie/usagepolicy).
+Missing optional datasets do not stop walking routes. The full context command
+also downloads non-hospital sources; these are not needed by the route cards.
 
 ## Not doing
 
@@ -101,7 +113,7 @@ Two real limits to know about, not bugs:
 - `data/pipeline/`: lighting/footfall/GTFS download and processing scripts.
 - `data/raw/`, `data/processed/`: local build output, gitignored.
 - `frontend/`: the map UI (Vite, vanilla JS, Leaflet).
-- `tests/`: pytest, 221 tests across routing, data pipeline and the API.
+- `tests/`: pytest checks for routing, data pipelines, snapshots and API behavior.
 
 ## Secrets
 
@@ -118,3 +130,14 @@ if you add that service back) or an Atlas connection string.
   Dublin, CC BY 4.0. Historical hourly counts, not live occupancy.
 - OpenStreetMap: © OpenStreetMap contributors, ODbL. Walking network and
   map tiles.
+
+## Integration checks (4 October 2026)
+
+328 Python tests plus 10 subtests, four Node tests, six Edge browser tests and a
+production build passed during integration. Real local API/browser checks also
+returned three distinct Dublin routes with hospital proximity, loaded Luas stops,
+and exercised unsupported/identical-endpoint errors. Public tiles were blocked
+in automated tests; Docker and physical-device checks were not run.
+
+The API contract is in [docs/api-contract.md](docs/api-contract.md). Alternative
+routes are bounded candidates, not a guarantee of the globally best three routes.

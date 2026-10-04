@@ -58,7 +58,8 @@ def _route_payload(kind: str, route: dict, status: str, detour: dict, time_slice
         "geometry": route["geometry"],
         "distance_m": route["distance_m"],
         "duration_s": round(route["duration_min"] * 60),
-        "lighting_coverage_pct": None if lighting["score"] is None else round(lighting["score"] * 100, 1),
+        "lighting_coverage_pct": None if lighting["score"] is None else round(lighting["coverage"] * 100, 1),
+        "activity_coverage_pct": None if activity["score"] is None else round(activity["coverage"] * 100, 1),
         "historical_activity": historical_activity,
         "waiting": None,
         "score": score,
@@ -80,10 +81,19 @@ def build_route_response(area: str, bbox: tuple[float, float, float, float] | No
     time_slice = engine_result.get("time_slice")
     siblings = {"fastest": fastest, "night": night}
 
-    routes = [
-        _route_payload("fastest", fastest, status, detour, time_slice, siblings),
-        _route_payload("night", night, status, detour, time_slice, siblings),
-    ]
+    routes = [_route_payload("fastest", fastest, status, detour, time_slice, siblings)]
+    seen = {tuple(map(tuple, fastest['geometry']['coordinates']))}
+    for index, (kind, candidate) in enumerate([
+            ('night',night), *[(f'alternative{i+1}',r) for i,r in enumerate(engine_result.get('alternatives',[]))]]):
+        signature = tuple(map(tuple,candidate['geometry']['coordinates']))
+        if signature in seen or len(routes)>=3:
+            continue
+        seen.add(signature)
+        item=_route_payload(kind,candidate,status,detour,time_slice,siblings)
+        if kind.startswith('alternative'):
+            extra=max(0,candidate['duration_min']-fastest['duration_min'])
+            item['explanations']=[f'Distinct walking alternative, about {extra:.1f} minutes longer than the fastest route.']
+        routes.append(item)
 
     description = f"Supported walking network: {area}."
     if status == "baseline_only":
@@ -91,6 +101,8 @@ def build_route_response(area: str, bbox: tuple[float, float, float, float] | No
 
     return {
         "mode": "walking",
+        "comparison_status": status,
+        "route_options_note": 'Up to three distinct candidates within five extra walking minutes; this is a bounded search, not an exhaustive ranking.',
         "coverage": {
             "bounds": list(bbox) if bbox else None,
             "description": description,

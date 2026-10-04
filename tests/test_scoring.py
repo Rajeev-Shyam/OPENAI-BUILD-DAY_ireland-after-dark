@@ -52,12 +52,12 @@ def test_build_explanations_fastest_is_always_the_same_neutral_line():
 def test_build_explanations_night_cites_real_lighting_difference():
     [explanation] = build_explanations("night", "ok", FASTEST, NIGHT, DETOUR)
     assert "2 min longer" in explanation
-    assert "30% more recorded lighting coverage" in explanation
+    assert "30 percentage points more recorded lighting proximity" in explanation
 
 
 def test_build_explanations_same_route_is_honest_not_a_fabricated_benefit():
     assert build_explanations("night", "same_route", FASTEST, FASTEST, DETOUR) == [
-        "This is already the best path for your preferences — same as the fastest route."
+        "The engine returned the same path for both options."
     ]
 
 

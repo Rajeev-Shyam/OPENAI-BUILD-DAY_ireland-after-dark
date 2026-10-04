@@ -1,6 +1,6 @@
 """Edge scores from the data pipeline's bundle.
 
-Unknown-data policy: evidence can only make an edge cheaper than unknown.
+Unknown-data policy: unsupported portions use a neutral preference score.
 
 - Lighting: the part of an edge near a recorded light counts as lit. The part
   with no evidence is unknown and costed at config.NEUTRAL_SCORE.
@@ -10,13 +10,13 @@ Unknown-data policy: evidence can only make an edge cheaper than unknown.
 Unknown is never costed as dark or empty, and never reported as zero.
 """
 
-import json
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 
 import networkx as nx
 
-from data.pipeline.edges import file_sha256
+from data.pipeline.time_scores import departure_slot, load_time_scores
 
 from . import config
 
@@ -56,27 +56,26 @@ def _edge_score(row: dict) -> EdgeScore:
 def load_edge_scores(
     bundle_path: Path = config.EDGE_SCORES_PATH,
     edges_path: Path = config.EDGES_GEOJSON_PATH,
+    *, departure_time: datetime | None = None,
 ) -> ScoreBundle:
     """Read the pipeline bundle. A missing bundle gives no scores.
 
     Refuses a bundle built for a different edge export, so scores are never
     joined onto the wrong graph.
     """
+    if departure_time is not None:
+        departure_slot(departure_time)  # reject naive times even without data
+    bundle_path, edges_path = Path(bundle_path), Path(edges_path)
     if not bundle_path.exists():
         return ScoreBundle()
-    document = json.loads(bundle_path.read_text(encoding="utf-8"))
-    if document.get("schema_version") != SCHEMA_VERSION:
-        raise ValueError(f"Unsupported score bundle schema in {bundle_path}")
-    if document["graph"]["sha256"] != file_sha256(edges_path):
-        raise ValueError(
-            f"{bundle_path} was built for a different graph than {edges_path}; "
-            "rebuild it with python -m data.pipeline.build"
-        )
-    scores = {
-        (int(row["u"]), int(row["v"]), int(row["key"])): _edge_score(row)
-        for row in document["edges"]
-    }
-    return ScoreBundle(scores, document["time_slice"])
+    rows, time_slice = load_time_scores(bundle_path, edges_path, departure_time=departure_time)
+    scores = {}
+    for identity, row in rows.items():
+        key = tuple(int(part) for part in identity)
+        if any(str(value) != raw for value, raw in zip(key, identity)) or key in scores:
+            raise ValueError("Routing requires canonical integer edge identities")
+        scores[key] = _edge_score(row)
+    return ScoreBundle(scores, time_slice)
 
 
 def apply_scores(G: nx.MultiDiGraph, scores: dict[EdgeKey, EdgeScore]) -> int:

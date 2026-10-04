@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "sources": {
+    "garda_dlr": {
+      "url": "https://data.smartdublin.ie/dataset/f4742714-ccb5-4676-a3f6-10ec8a0be43c/resource/49ebc41c-2dda-419d-bad3-8c2bf7b95d81/download/garda-stations-dlr.csv",
+      "catalogue_url": "https://data.gov.ie/dataset/garda-stations-dlr",
+      "filename": "garda-dlr.csv",
+      "license": "CC-BY-4.0",
+      "attribution": "Dún Laoghaire-Rathdown County Council",
+      "coverage": "Dún Laoghaire-Rathdown; not an Ireland-wide inventory",
+      "required_columns": [
+        "Station_ID",
+        "name",
+        "itm_east",
+        "itm_north",
+        "eircode",
+        "PhoneNo"
+      ],
+      "kind": "garda_station",
+      "id_column": "Station_ID",
+      "name_column": "name",
+      "coordinate_system": "EPSG:2157"
+    },
+    "fire_dublin": {
+      "url": "https://data.smartdublin.ie/dataset/32c58199-d1da-4676-b9c5-35c01d4748a3/resource/121e57fe-1f0f-40b6-b8c6-579713fc901c/download/dublin-fire-brigade-stations-2025.csv",
+      "catalogue_url": "https://data.gov.ie/dataset/dublin-fire-brigade-stations-dublin-region",
+      "filename": "fire-dublin-2025.csv",
+      "license": "CC-BY-4.0",
+      "attribution": "Dublin City Council",
+      "coverage": "Dublin region; published 2025 inventory",
+      "required_columns": [
+        "StationID",
+        "StaionName",
+        "Latitude",
+        "Longitude",
+        "Address",
+        "Eircode"
+      ],
+      "kind": "fire_station",
+      "id_column": "StationID",
+      "name_column": "StaionName",
+      "coordinate_system": "EPSG:4326"
+    },
+    "scats_dcc": {
+      "url": "https://data.smartdublin.ie/dataset/5fd277d3-4ece-45b7-982a-b6116c45470b/resource/f64c93a1-2bce-42d0-8a8b-b41c95546d8a/download/dcc-traffic-scats-signals-google-maps-1.csv",
+      "catalogue_url": "https://data.gov.ie/dataset/traffic-signals-and-scats-sites-locations-dcc",
+      "filename": "scats-dcc-2026.csv",
+      "license": "CC-BY-4.0",
+      "attribution": "Dublin City Council",
+      "coverage": "Dublin City Council inventory; administrative membership not independently verified",
+      "required_columns": [
+        "WKT",
+        "Site_ID",
+        "Location",
+        "Lat",
+        "Long"
+      ],
+      "kind": "traffic_signal_or_scats_site",
+      "id_column": "Site_ID",
+      "name_column": "Location",
+      "coordinate_system": "EPSG:4326"
+    },
+    "hospitals_osm": {
+      "url": "https://overpass.openstreetmap.fr/api/interpreter?data=%5Bout%3Acsv%28%3A%3Atype%2C%3A%3Aid%2C%3A%3Alat%2C%3A%3Alon%2Cname%2Camenity%2Cemergency%2Copening_hours%2Caccess%2C%3A%3Acount%3Btrue%3B%22%2C%22%29%5D%5Btimeout%3A25%5D%3Bnwr%5B%22amenity%22%3D%22hospital%22%5D%2853.29%2C-6.39%2C53.41%2C-6.11%29%3Bout+center%3Bout+count%3B",
+      "catalogue_url": "https://wiki.openstreetmap.org/wiki/Tag:amenity%3Dhospital",
+      "filename": "hospitals-osm.csv",
+      "license": "ODbL-1.0",
+      "attribution": "© OpenStreetMap contributors",
+      "coverage": "Dublin bbox south=53.29, west=-6.39, north=53.41, east=-6.11; incomplete OSM hospital-tagged inventory, not all Ireland",
+      "required_columns": [
+        "@type",
+        "@id",
+        "@lat",
+        "@lon",
+        "name",
+        "amenity",
+        "emergency",
+        "opening_hours",
+        "access",
+        "@count"
+      ],
+      "kind": "hospital",
+      "id_column": "@id",
+      "name_column": "name",
+      "coordinate_system": "EPSG:4326",
+      "query": "[out:csv(::type,::id,::lat,::lon,name,amenity,emergency,opening_hours,access,::count;true;\",\")][timeout:25];nwr[\"amenity\"=\"hospital\"](53.29,-6.39,53.41,-6.11);out center;out count;",
+      "geometry_semantics": "Node position or way/relation bounding-box centre; not an entrance",
+      "query_bbox_south_west_north_east": [
+        53.29,
+        -6.39,
+        53.41,
+        -6.11
+      ]
+    }
+  }
+}

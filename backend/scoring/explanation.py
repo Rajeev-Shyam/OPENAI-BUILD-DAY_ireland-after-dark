@@ -35,7 +35,11 @@ def build_limitations(route: dict, has_scores: bool, time_slice: dict | None) ->
             "No lighting or footfall evidence is available in this area; "
             "only distance and time are shown."
         ]
-    limitations = [LIGHTING_CAVEAT, ACTIVITY_CAVEAT, NO_CROSSING_DATA]
+    limitations = [LIGHTING_CAVEAT, ACTIVITY_CAVEAT,
+                   'Walking time is estimated. Paths do not establish current access or closures; access walks to snapped graph nodes are excluded.',
+                   f"Lighting evidence covers {route['lighting']['coverage'] * 100:.1f}% of route length; activity evidence covers {route['activity']['coverage'] * 100:.1f}%. Other portions remain unknown."]
+    if not any(route.get('crossings', {}).values()):
+        limitations.append(NO_CROSSING_DATA)
     if route["lighting"]["score"] is None:
         limitations.append("No lighting evidence is recorded along this route.")
     if route["activity"]["score"] is None:
@@ -56,7 +60,7 @@ def build_explanations(kind: str, status: str, fastest: dict, night: dict, detou
         ]
     if status == "same_route":
         return [
-            "This is already the best path for your preferences — same as the fastest route."
+            "The engine returned the same path for both options."
         ]
     if status == "no_alternative":
         return [
@@ -73,12 +77,12 @@ def build_explanations(kind: str, status: str, fastest: dict, night: dict, detou
     if f_light is not None and n_light is not None and round(n_light, 3) != round(f_light, 3):
         diff = round((n_light - f_light) * 100)
         direction = "more" if diff > 0 else "less"
-        parts.append(f"{abs(diff)}% {direction} recorded lighting coverage than the fastest route")
+        parts.append(f"{abs(diff)} percentage points {direction} recorded lighting proximity than the fastest route")
 
     f_act, n_act = fastest["activity"]["score"], night["activity"]["score"]
     if f_act is not None and n_act is not None and round(n_act, 3) != round(f_act, 3):
         diff = round((n_act - f_act) * 100)
         direction = "more" if diff > 0 else "less"
-        parts.append(f"{abs(diff)}% {direction} historical activity than the fastest route")
+        parts.append(f"{abs(diff)} points {direction} on the historical activity index than the fastest route")
 
     return [", ".join(parts) + "."]
