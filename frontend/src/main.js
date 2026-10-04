@@ -59,7 +59,7 @@ function confidenceClass(confidence) {
   return confidence === 'High' ? 'high' : confidence === 'Medium' ? 'medium' : 'low';
 }
 
-const FACTOR_NAMES = { 'Recorded lighting': 'Street lighting', 'Historical activity': 'Footfall activity' };
+const FACTOR_NAMES = { 'Recorded lighting': 'Street lighting', 'Historical activity': 'How busy it usually is' };
 
 function level(value) {
   if (value === null || value === undefined) return 'Unknown';
