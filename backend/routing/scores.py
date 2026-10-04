@@ -10,13 +10,14 @@ Unknown-data policy: unsupported portions use a neutral preference score.
 Unknown is never costed as dark or empty, and never reported as zero.
 """
 
+import json
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
 import networkx as nx
 
-from data.pipeline.time_scores import departure_slot, load_time_scores
+from data.pipeline.time_scores import departure_slot, load_time_scores, validate_profiles
 
 from . import config
 from .crossings import classify_crossings
@@ -38,6 +39,15 @@ class EdgeScore:
 class ScoreBundle:
     scores: dict[EdgeKey, EdgeScore] = field(default_factory=dict)
     time_slice: dict | None = None  # weekday and hour the activity scores are for
+    # Counter profiles for every weekday and hour, and their matching radius,
+    # when the bundle carries them: lets activity follow the departure time.
+    profiles: dict | None = None
+    footfall_radius_m: float | None = None
+
+
+def quiet_term(activity: float | None, coverage: float) -> float:
+    """NightCost activity term: the counter's score where covered, neutral elsewhere."""
+    return 1.0 - (coverage * (activity or 0.0) + (1.0 - coverage) * config.NEUTRAL_SCORE)
 
 
 def _edge_score(row: dict) -> EdgeScore:
@@ -76,7 +86,13 @@ def load_edge_scores(
         if any(str(value) != raw for value, raw in zip(key, identity)) or key in scores:
             raise ValueError("Routing requires canonical integer edge identities")
         scores[key] = _edge_score(row)
-    return ScoreBundle(scores, time_slice)
+
+    document = json.loads(bundle_path.read_text(encoding="utf-8"))
+    profiles = document.get("footfall_profiles")
+    if profiles is None:
+        return ScoreBundle(scores, time_slice)
+    validate_profiles(profiles, document.get("sources", {}))
+    return ScoreBundle(scores, time_slice, profiles, document["parameters"]["footfall_radius_m"])
 
 
 def apply_scores(G: nx.MultiDiGraph, scores: dict[EdgeKey, EdgeScore]) -> int:
@@ -103,11 +119,7 @@ def apply_scores(G: nx.MultiDiGraph, scores: dict[EdgeKey, EdgeScore]) -> int:
         data["crossing_type"] = crossing
         # Cost terms: evidence where there is some, neutral for the rest.
         lit = (score.lighting or 0.0) + (1.0 - score.lighting_coverage) * neutral
-        active = (
-            score.activity_coverage * (score.activity or 0.0)
-            + (1.0 - score.activity_coverage) * neutral
-        )
         data["dark"] = 1.0 - lit
-        data["quiet"] = 1.0 - active
+        data["quiet"] = quiet_term(score.activity, score.activity_coverage)
         data["crossing_m"] = config.CROSSING_PENALTY_M.get(crossing, 0.0) / 2
     return matched

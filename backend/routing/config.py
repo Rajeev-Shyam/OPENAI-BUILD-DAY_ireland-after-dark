@@ -51,6 +51,7 @@ CROSSING_PENALTY_M = {
     "signal": 10.0,
     "minor": 20.0,
     "major_unsignalised": 80.0,
+    "unknown": 20.0,  # neutral: not assumed to be signalised or unsignalised
 }
 
 # Further than this from the chosen route counts as off it (GPS error allowance).
