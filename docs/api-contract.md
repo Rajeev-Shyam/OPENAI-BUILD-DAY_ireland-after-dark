@@ -35,7 +35,10 @@ this incomplete snapshot. This is not medical advice or emergency navigation.
 Errors have `error.code` and `error.message`: INVALID_INPUT (400),
 UNSUPPORTED_AREA (422), NO_ROUTE (404), or INTERNAL_ERROR (500).
 Identical endpoints that snap to one node are INVALID_INPUT. Duplicate route
-geometries are omitted; fewer than three valid alternatives is a normal result.
+geometries and near-identical street corridors are omitted: routes sharing at
+least 85% of each other's length within a 15 m corridor count as one option.
+This is a display-diversity heuristic. Fewer than three valid alternatives is
+a normal result; the bounded search tries up to five penalised candidates.
 
 ## Other endpoints
 

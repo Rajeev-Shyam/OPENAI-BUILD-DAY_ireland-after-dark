@@ -6,6 +6,7 @@ translation lives here.
 
 from . import route_score
 from .explanation import build_explanations, build_limitations
+from backend.routing.diversity import same_corridor
 
 # Dated to the actual resource content, not the download date.
 # Dublin City Council via Smart Dublin, CC BY 4.0.
@@ -82,13 +83,12 @@ def build_route_response(area: str, bbox: tuple[float, float, float, float] | No
     siblings = {"fastest": fastest, "night": night}
 
     routes = [_route_payload("fastest", fastest, status, detour, time_slice, siblings)]
-    seen = {tuple(map(tuple, fastest['geometry']['coordinates']))}
-    for index, (kind, candidate) in enumerate([
-            ('night',night), *[(f'alternative{i+1}',r) for i,r in enumerate(engine_result.get('alternatives',[]))]]):
-        signature = tuple(map(tuple,candidate['geometry']['coordinates']))
-        if signature in seen or len(routes)>=3:
+    seen = [fastest]
+    for kind, candidate in [
+            ('night',night), *[(f'alternative{i+1}',r) for i,r in enumerate(engine_result.get('alternatives',[]))]]:
+        if len(routes)>=3 or any(same_corridor(candidate, previous) for previous in seen):
             continue
-        seen.add(signature)
+        seen.append(candidate)
         item=_route_payload(kind,candidate,status,detour,time_slice,siblings)
         if kind.startswith('alternative'):
             extra=max(0,candidate['duration_min']-fastest['duration_min'])
@@ -102,7 +102,7 @@ def build_route_response(area: str, bbox: tuple[float, float, float, float] | No
     return {
         "mode": "walking",
         "comparison_status": status,
-        "route_options_note": 'Up to three distinct candidates within five extra walking minutes; this is a bounded search, not an exhaustive ranking.',
+        "route_options_note": "Up to three distinct candidates within five extra walking minutes. Routes sharing at least 85% of each other's 15 m corridor count as one option. This is a bounded search, not an exhaustive ranking.",
         "coverage": {
             "bounds": list(bbox) if bbox else None,
             "description": description,

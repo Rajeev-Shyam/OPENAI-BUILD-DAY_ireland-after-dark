@@ -2,10 +2,33 @@ import json
 from copy import deepcopy
 
 from backend.routing.alternatives import add_alternatives
+from backend.routing.diversity import same_corridor
 from backend.routing.engine import Preferences, RoutingEngine
 from backend.scoring.contract import build_route_response
 from backend.api import hospitals
 from test_routing import make_graph, ORIGIN, DESTINATION
+
+
+def test_same_street_with_a_small_sidewalk_offset_counts_as_one():
+    def route(points):
+        return {'geometry': {'type': 'LineString', 'coordinates': points}}
+    straight = route([[-6.26, 53.35], [-6.25, 53.35]])
+    sidewalk = route([[-6.26, 53.35], [-6.255, 53.35005], [-6.25, 53.35]])
+    other_street = route([[-6.26, 53.35], [-6.255, 53.351], [-6.25, 53.35]])
+    assert same_corridor(straight, sidewalk)
+    assert same_corridor(sidewalk, straight)
+    assert not same_corridor(straight, other_street)
+
+
+def test_response_omits_near_duplicate_night_route():
+    engine = RoutingEngine(make_graph())
+    result = engine.route(ORIGIN, DESTINATION)
+    result['night'] = deepcopy(result['fastest'])
+    coordinates = result['night']['geometry']['coordinates']
+    coordinates.insert(1, [(coordinates[0][0] + coordinates[1][0]) / 2,
+                           (coordinates[0][1] + coordinates[1][1]) / 2 + 0.00001])
+    assert result['night']['geometry'] != result['fastest']['geometry']
+    assert len(build_route_response('synthetic', None, result)['routes']) == 1
 
 
 def test_three_distinct_candidates_without_mutating_graph():
