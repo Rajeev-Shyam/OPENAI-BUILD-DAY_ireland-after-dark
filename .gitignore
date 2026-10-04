@@ -7,6 +7,8 @@ __pycache__/
 node_modules/
 dist/
 build/
+.next/
+next-env.d.ts
 
 # Secrets / private local configuration
 .env
